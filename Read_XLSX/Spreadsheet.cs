@@ -17,11 +17,10 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace Read_XLSX
 {
-
-
 	class DataCell
 	{
 		public string CellReference { get; set; }
@@ -68,20 +67,16 @@ namespace Read_XLSX
 			cols.AddRange(Sheet.addedCells);
 			// Don't want a delimiter after last column.
 			int idx = 0;
-			foreach(var v in cols)
+			foreach (var v in cols)
 			{
 				sb.Append(v.Value ?? "");
 				if (++idx < cols.Count())
 					sb.Append(delim);
 			}
-			
+
 			return sb;
 		}
 	}
-
-
-
-
 
 	class DataSheet
 	{
@@ -145,7 +140,7 @@ namespace Read_XLSX
 			cols.AddRange(DataColumns);
 			cols.AddRange(SpecialCells.Select(s => new DataColumn { Name = s.CellName }).ToList());
 			int idx = 0;
-			foreach(var c in cols)
+			foreach (var c in cols)
 			{
 				sb.Append(c.Name);
 				if (++idx < cols.Count())
@@ -160,6 +155,7 @@ namespace Read_XLSX
 	{
 		public string FilePath { get; set; }
 		public List<DataSheet> DataSheets { get; set; }
+		public DataSourceType dst { get; set; }
 
 		public DataFile(string filePath)
 		{
@@ -199,88 +195,121 @@ namespace Read_XLSX
 
 	class Spreadsheet
 	{
-		public Spreadsheet()
-		{
+		public DataSourceTypes _dsts;
+		private SharedStringTablePart stringTable;
+		private CellFormats cellFormats;
+		private List<string> sref;
+		private List<int> cols;
 
+		public Spreadsheet(DataSourceTypes dsts)
+		{
+			_dsts = dsts;
 		}
 
-		public static DataFile ProcessFile(string filePath)
+		public DataFile ProcessFile(FileInfo file)
 		{
-			var dataFile = new DataFile(filePath);
-			var fileName = System.IO.Path.GetFileName(filePath);
-
-			var dst = new DataSourceTypes();
+			var dataFile = new DataFile(file.FullName);
 
 			try
 			{
-				using (SpreadsheetDocument ss = SpreadsheetDocument.Open(filePath, false))
+				using (SpreadsheetDocument ss = SpreadsheetDocument.Open(file.FullName, false))
 				{
-					var type = dst.DetermineType(ss);
+					dataFile.dst = _dsts.DetermineType(ss);
+
+					if (dataFile.dst == null)
+					{
+						Log.Msg($"FAILURE: {file.FullName}: Unable to determine format type of file");
+						return dataFile;
+					}
 
 					WorkbookPart wbp = ss.WorkbookPart;
-					var stringTable = wbp.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+					stringTable = wbp.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
 
-					var cellFormats = wbp.WorkbookStylesPart.Stylesheet.CellFormats;
+					cellFormats = wbp.WorkbookStylesPart.Stylesheet.CellFormats;
 					var numberingFormats = wbp.WorkbookStylesPart.Stylesheet.NumberingFormats;
 
-					foreach (var dws in type.workSheets)
+					foreach (var dws in dataFile.dst.workSheets)
 					// Iterate through the worksheets for this data type
 					{
-						var specialCells = dws.layout.CopySpecialCells();
-
 						// Ignore data worksheets with no layout data.
 						if (dws.layout == null) continue;
 
-						// Locate file worksheet that cooresponds data layout.
-						var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(type.workSheets.IndexOf(dws));
+						sref = dws.layout.specialCells.Where(s => s.CellReference != null).Select(s => s.CellReference).ToList();
+						cols = dws.layout.columns.Select(dc => dc.col).ToList();
 
-						// Locate 
-						var cols = dws.layout.columns.Select(dc => dc.col);
-						var sref = specialCells.Where(s => s.CellReference != null).Select(s => s.CellReference);
+						WorksheetPart wsp;
 
-						var dataSheet = dataFile.AddDataSheet(sht.Name, dws.layout.columns, specialCells);
+						if (dataFile.dst.matchWorkSheetNames)
+						// Process corresponding worksheet.
+						{
+							// Locate file worksheet that cooresponds data layout.
+							var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dataFile.dst.workSheets.IndexOf(dws));
 
-						WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
+							var specialCells = dws.layout.CopySpecialCells();
+							var dataSheet = dataFile.AddDataSheet(sht.Name, dws.layout.columns, specialCells);
 
-						var tcs = wsp.Worksheet.Descendants<Cell>()
+							wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
+
+							ProcessCells(dataSheet, wsp, specialCells, dws);
+						}
+						else
+						// Process all worksheets that have matching signature.
+						{
+							foreach(var sht in wbp.Workbook.Descendants<Sheet>())
+							{
+								wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
+
+								if (_dsts.CheckSignature(wsp.Worksheet, dws.layout.specialCells, dws.layout.columns, stringTable, cellFormats))
+								// Worksheet has mitching signature. Do the deed.
+								{
+									var specialCells = dws.layout.CopySpecialCells();
+									var dataSheet = dataFile.AddDataSheet(sht.Name, dws.layout.columns, specialCells);
+									ProcessCells(dataSheet, wsp, specialCells, dws);
+								}
+							}
+						}
+					}
+				}
+
+				dataFile.DropRows();
+				Log.Msg($"processed {dataFile.RecCount()} records from file: {file.Name}");
+				return dataFile;
+
+			}
+			catch (Exception ex)
+			{
+				Log.Msg(ex, $"loading file: {file.Name}");
+				return null;
+			}
+		}
+
+		private void ProcessCells(DataSheet dataSheet, WorksheetPart wsp, List<SpecialCell> specialCells, DataWorkSheet dws)
+		{
+			var tcs = wsp.Worksheet.Descendants<Cell>()
 										.Where(c => c.InnerText.Length > 0)
 										.Select(t => new { cell = t, row = GetRow(t.CellReference.InnerText), col = GetColumn(t.CellReference.InnerText) })
 										.Where(k => sref.Contains(k.cell.CellReference.InnerText) || (k.row >= dws.layout.StartRow && cols.Contains(k.col)));
 
-						string sval = null;
+			string sval = null;
 
-						var scMonth = specialCells.Where(cs => cs.CellName == "Month").FirstOrDefault();
-						scMonth.Value = sht.Name;
+			foreach (var tc in tcs)
+			{
+				var sc = specialCells.Where(cs => cs.CellReference == tc.cell.CellReference.InnerText).FirstOrDefault();
+				int row = tc.row;
+				int col = tc.col;
+				DataColumn colmn = dws.layout.columns.Where(dc => row >= dws.layout.StartRow && dc.col == col).FirstOrDefault();
 
-						foreach (var tc in tcs)
-						{
-							var sc = specialCells.Where(cs => cs.CellReference == tc.cell.CellReference.InnerText).FirstOrDefault();
-							int row = tc.row;
-							int col = tc.col;
-							DataColumn colmn = dws.layout.columns.Where(dc => row > 10 && dc.col == col).FirstOrDefault();
+				sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, colmn);
 
-							sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, colmn);
-
-							if (sc != null)
-								sc.Value = sval;
-							else {
-								var dataCell = new DataCell { CellReference = tc.cell.CellReference.InnerText, Col = col, Value = sval };
-								dataSheet.AddCell(dataCell);
-							}
-						}
-					}
-
-					dataFile.DropRows();
-					Log.Msg($"processed {dataFile.RecCount()} records from file: {fileName}");
-					return dataFile;
+				if (sc != null)
+					sc.Value = sval;
+				else {
+					var dataCell = new DataCell { CellReference = tc.cell.CellReference.InnerText, Col = col, Value = sval };
+					dataSheet.AddCell(dataCell);
 				}
 			}
-			catch (Exception ex)
-			{
-				Log.Msg(ex, $"loading file: {fileName}");
-				return null;
-			}
 		}
+
 
 		public static int GetRow(string address)
 		{
@@ -345,41 +374,6 @@ namespace Read_XLSX
 			}
 
 			return sval;
-		}
-
-		/// <summary>
-		/// Checks the TitleCellsReference values against expected values. If everything matches then this is a pass.
-		/// </summary>
-		/// <param name="ws"></param>
-		/// <param name="specialCells"></param>
-		/// <param name="dataColumns"></param>
-		/// <param name="stringTable"></param>
-		/// <param name="formats"></param>
-		/// <returns></returns>
-		public static bool CheckSignature(Worksheet ws, List<SpecialCell> specialCells, List<DataColumn> dataColumns, SharedStringTablePart stringTable, CellFormats formats)
-		{
-			// Create a dictionary of cell reference expected value pairs for expected title cells
-			Dictionary<string, string> pairs = new Dictionary<string, string>();
-			specialCells.Where(sc => sc.TitleCellReference != null && sc.TitleString != null).ToList().ForEach(sc => pairs.Add(sc.TitleCellReference, sc.TitleString));
-			dataColumns.Where(dc => dc.TitleCellReference != null && dc.TitleString != null).ToList().ForEach(dc => pairs.Add(dc.TitleCellReference, dc.TitleString));
-
-			// All references to check
-			var refs = pairs.Select(p => p.Key).ToList();
-
-			// All cells in worksheet.
-			var tcs = ws.Descendants<Cell>();
-
-			// All referenced cells to check
-			var tcs_c = tcs.Where(t => refs.Contains(t.CellReference.InnerText));
-
-			// All referenced cells with computed and expected value.
-			var tcs_d = tcs_c.Select(t => new { cell = t, val = GetCellValue(t, stringTable.SharedStringTable, formats, null), expected = pairs[t.CellReference.InnerText] });
-
-			// All cells where expected does not match value
-			var fail = tcs_d.Where(f => f.val != f.expected);
-
-			// Should be zero if everything matched.
-			return fail.Count() == 0;
 		}
 	}
 }

@@ -23,13 +23,18 @@ namespace Read_XLSX
 {
 	class DataSourceTypes
 	{
-		List<DataSourceType> types { get; set; }
+		public List<DataSourceType> types { get; set; }
 
 		public DataSourceTypes()
 		{
 			Init();
 		}
 
+		/// <remarks>
+		/// Two ways to determin type based on value matchWorkSheetNames
+		/// - when true then worksheet names must match DataSource type in order to be a match.
+		/// - when false then if any worksheets match data source layout then is a match
+		/// </remarks>
 		public DataSourceType DetermineType(SpreadsheetDocument ssd)
 		{
 			DataSourceType type = null;
@@ -40,35 +45,57 @@ namespace Read_XLSX
 
 			var shts = wbp.Workbook.Descendants<Sheet>();
 
-			// Only look at types with same number of worksheets
-			var res = types.Where(r => r.workSheets.Count() == shts.Count()).ToList();
+			var procTypes = types.Where(r => !r.matchWorkSheetNames || (r.matchWorkSheetNames && r.workSheets.Count() == shts.Count())).ToList();
 
 			int idx = 0;
 			foreach (var sht in shts)
 			// Get list of types with matching worksheet names in sequence.
 			{
-				res = res.Where(r => r.workSheets.ElementAt(idx).Name == sht.Name).ToList();
+				procTypes = procTypes.Where(r => !r.matchWorkSheetNames || (r.matchWorkSheetNames && r.workSheets.ElementAt(idx).Name == sht.Name)).ToList();
 				idx++;
 			}
 
-			if (res.Count() == 0) return null;
+			if (procTypes.Count() == 0) return null;
 
-			foreach (var dst in res)
+			foreach (var dst in procTypes)
 			// Iterate through types
 			{
 				bool isPass = true;
 
-				foreach (var dws in dst.workSheets)
-				// Iterate through worksheets for type.
+				if (dst.matchWorkSheetNames)
 				{
-					if (dws.layout == null) continue;
+					foreach (var dws in dst.workSheets)
+					// Iterate through worksheets for type.
+					{
+						if (dws.layout == null) continue;
 
-					// Locate corresponding file worksheet based on type worksheet index.
-					var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dst.workSheets.IndexOf(dws));
+						// Locate corresponding file worksheet based on type worksheet index.
+						var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dst.workSheets.IndexOf(dws));
 
-					WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
-					
-					isPass &= CheckSignature(wsp.Worksheet, dws.layout.specialCells, dws.layout.columns, stringTable, cellFormats);
+						WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
+
+						isPass &= CheckSignature(wsp.Worksheet, dws.layout.specialCells, dws.layout.columns, stringTable, cellFormats);
+					}
+				}
+				else
+				{
+					isPass = false;
+
+					foreach(var dws in dst.workSheets)
+					{
+						if (dws.layout == null) continue;
+
+						foreach(var sht in wbp.Workbook.Descendants<Sheet>())
+						{
+							WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
+
+							isPass |= CheckSignature(wsp.Worksheet, dws.layout.specialCells, dws.layout.columns, stringTable, cellFormats);
+
+							if (isPass) break;
+						}
+
+						if (isPass) break;
+					}
 				}
 
 				if (isPass)
@@ -103,6 +130,8 @@ namespace Read_XLSX
 			// All cells where expected does not match value
 			var fail = tcs_d.Where(f => f.val != f.expected);
 
+			fail.ToList().ForEach(a => Log.Msg($"Expected: '{a.expected}', Found: {a.val}"));
+
 			// Should be zero if everything matched.
 			return fail.Count() == 0;
 		}
@@ -113,6 +142,7 @@ namespace Read_XLSX
 			var cga = new DataWorkSheetLayout
 			{
 				Name = "Complaint, Grievance and Appeal Information",
+
 				specialCells = new List<SpecialCell>
 				{
 					new SpecialCell { CellReference = "E5", CellName = "MedicalProviderNbrs", TitleCellReference = "B5", TitleString = "Medicaid Provider #:" },
@@ -120,8 +150,9 @@ namespace Read_XLSX
 					new SpecialCell { CellReference = "D7", CellName = "PlanName", TitleCellReference = "B7", TitleString = "Plan Name:" },
 					new SpecialCell { CellReference = "O3", CellName = "TotalMMA", TitleCellReference = "P3", TitleString = "Total MMA" },
 					new SpecialCell { CellReference = "O4", CellName = "TotalLTC", TitleCellReference = "P4", TitleString = "Total LTC" },
-					new SpecialCell { CellName = "Month" }
+					new SpecialCell { CellReference = "B3", CellName = "Month" }
 				},
+
 				columns = new List<DataColumn>
 				{
 					new DataColumn { col = 2, Name = "Region", DataFormat = DataFormatType.String, TitleCellReference = "B9", TitleString = "Region # (1 - 11)" },
@@ -144,12 +175,81 @@ namespace Read_XLSX
 				StartRow = 11
 			};
 
+			var frer = new DataWorkSheetLayout
+			{
+				Name = "Enrollee Roster and Facility Residence Report",
+
+				specialCells = new List<SpecialCell>
+				{
+					new SpecialCell { CellReference = "B3", CellName = "MC_PlanName", TitleCellReference = "A3", TitleString = "Managed Care Plan Name : " },
+					new SpecialCell { CellReference = "B4", CellName = "MC_PlanID", TitleCellReference = "A4", TitleString = "Managed Care Plan ID :" },
+					new SpecialCell { CellReference = "B5", CellName = "Month", TitleCellReference = "A5", TitleString = "Reporting Month (MM/DD/YYYY):" }
+				},
+
+				columns = new List<DataColumn>
+				{
+					new DataColumn { col = 1, Name = "LastName", DataFormat = DataFormatType.String, TitleCellReference = "A7", TitleString = "Enrolee Last Name" },
+					new	DataColumn { col = 2, Name = "FirstName", DataFormat = DataFormatType.String, TitleCellReference = "B7", TitleString = "Enrolee First Name" },
+					new DataColumn { col = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, TitleCellReference = "C7", TitleString = "Medicaid ID", isRequired = true },
+					new DataColumn { col = 4, Name = "SSN", DataFormat = DataFormatType.String, TitleCellReference = "D7", TitleString = "Social Security Number" },
+					new DataColumn { col = 5, Name = "DOB", DataFormat = DataFormatType.Date, TitleCellReference = "E7", TitleString = "Date of Birth (mm/dd/yyyy)" },
+					new DataColumn { col = 6, Name = "Addr", DataFormat = DataFormatType.String, TitleCellReference = "F7", TitleString = "Physical Address" },
+					new DataColumn { col = 7, Name = "City", DataFormat = DataFormatType.String, TitleCellReference = "G7", TitleString = "City" },
+					new DataColumn { col = 8, Name = "Zip", DataFormat = DataFormatType.String, TitleCellReference = "H7", TitleString = "Zip Code" },
+					new DataColumn { col = 9, Name = "County", DataFormat = DataFormatType.String, TitleCellReference = "I7", TitleString = "County of Residence" },
+					new DataColumn { col = 9, Name = "Setting", DataFormat = DataFormatType.String, TitleCellReference = "J7", TitleString = "Residential Setting Type (Home, ALF, SNF or AFCH)" },
+					new DataColumn { col = 10, Name = "FacilityName", DataFormat = DataFormatType.String, TitleCellReference = "K7", TitleString = "Name of Facility" },
+					new DataColumn { col = 11, Name = "FacilityLic", DataFormat = DataFormatType.String, TitleCellReference = "L7", TitleString = "Facility License Number" },
+					new DataColumn { col = 12, Name = "Tansition", DataFormat = DataFormatType.String, TitleCellReference = "M7", TitleString = "Identify if transitioning into a SNF or back into Community (SNF, Community, or N/A)"},
+					new DataColumn { col = 13, Name = "TransistionDate", DataFormat = DataFormatType.Date, TitleCellReference = "N7", TitleString = "Date of transition to SNF or Community (if applicable)" },
+					new DataColumn { col = 14, Name = "Form2515Date", DataFormat = DataFormatType.Date, TitleCellReference = "O7", TitleString = "Date the 2515 form was sent to DCF if transitioning (if applicable)" },
+					new DataColumn { col = 15, Name = "canLocate", DataFormat = DataFormatType.String, TitleCellReference = "P7", TitleString = "			Able to Locate?" + System.Environment.NewLine + "			Y/N" },
+					new DataColumn { col = 16, Name = "canContact", DataFormat = DataFormatType.String, TitleCellReference = "Q7", TitleString = "			Able to Contact?" + System.Environment.NewLine + "			Y/N" },
+					new DataColumn { col = 17, Name = "LastContaceDate", DataFormat = DataFormatType.Date, TitleCellReference = "R7", TitleString = "If unable to contact or locate enrolee, date of last contact? (N/A if not applicable)" },
+					new DataColumn { col = 18, Name = "Comments", DataFormat = DataFormatType.String, TitleCellReference = "S7", TitleString = "Comments including demonstration of attempts to contact enrolee if applicable" }
+				},
+
+				StartRow = 8
+			};
+
+			var efrr = new DataWorkSheetLayout
+			{
+				Name = "Enrollee Facility Residence Report ",
+
+				specialCells = new List<SpecialCell>
+				{
+					new SpecialCell { CellReference = "A3", CellName = "MC_PlanName" },
+					new SpecialCell { CellReference = "A4", CellName = "MC_PlanID" },
+					new SpecialCell { CellReference = "A5", CellName = "Month" }
+				},
+
+				columns = new List<DataColumn>
+				{
+					new DataColumn { col = 1, Name = "LastName", DataFormat = DataFormatType.String, TitleCellReference = "A7", TitleString = "Last Name" },
+					new DataColumn { col = 2, Name = "FirstName", DataFormat = DataFormatType.String, TitleCellReference = "B7", TitleString = "First Name" },
+					new DataColumn { col = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, TitleCellReference = "C7", TitleString = "Medicaid ID", isRequired = true },
+					new DataColumn { col = 4, Name = "SSN", DataFormat = DataFormatType.String, TitleCellReference = "D7", TitleString = "Social Security Number" },
+					new DataColumn { col = 5, Name = "DOB", DataFormat = DataFormatType.Date, TitleCellReference = "E7", TitleString = "Date of Birth (mm/dd/yyyy)" },
+					new DataColumn { col = 6, Name = "Addr", DataFormat = DataFormatType.String, TitleCellReference = "F7", TitleString = "Physical Address\n(full street address)" },
+					new DataColumn { col = 7, Name = "City", DataFormat = DataFormatType.String, TitleCellReference = "G7", TitleString = "City" },
+					new DataColumn { col = 8, Name = "Zip", DataFormat = DataFormatType.String, TitleCellReference = "H7", TitleString = "Zip Code" },
+					new DataColumn { col = 9, Name = "County", DataFormat = DataFormatType.String, TitleCellReference = "I7", TitleString = "County of Residence" },
+					new DataColumn { col = 9, Name = "Setting", DataFormat = DataFormatType.String, TitleCellReference = "J7", TitleString = "Type of Facility" },
+					new DataColumn { col = 10, Name = "FacilityName", DataFormat = DataFormatType.String, TitleCellReference = "K7", TitleString = "Name of Facility" },
+					new DataColumn { col = 11, Name = "FacilityLic", DataFormat = DataFormatType.String, TitleCellReference = "L7", TitleString = "Facility License Number" },
+				},
+
+				StartRow = 8
+			};
+
 			// Create list of data source types.
 			types = new List<DataSourceType>
 			{
 				new DataSourceType
 				{
 					Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
+					outputFileName = "Complaint_Greivance_Appeal_Info_0127",
+					matchWorkSheetNames = true,
 					workSheets = new List<DataWorkSheet>
 					{
 						new DataWorkSheet { Name = "Instructions" },
@@ -169,6 +269,28 @@ namespace Read_XLSX
 						new DataWorkSheet { Name = "Summary" }
 					}
 				},
+
+				new DataSourceType
+				{
+					Name = "Enrollee Facility Residence Report ",
+					outputFileName = "Enrollee_Facility_Residence_0129",
+					matchWorkSheetNames = false,
+					workSheets = new List<DataWorkSheet>
+					{
+						new DataWorkSheet { layout = frer }
+					}
+				},
+
+				new DataSourceType
+				{
+					Name = "Enrollee Facility Residence Report",
+					outputFileName = "Enrollee_Facility_Residence_0129_v2",
+					matchWorkSheetNames = false,
+					workSheets = new List<DataWorkSheet>
+					{
+						new DataWorkSheet { layout = efrr }
+					}
+				}
 			};
 		}
 	}
@@ -176,6 +298,9 @@ namespace Read_XLSX
 	class DataSourceType
 	{
 		public string Name { get; set; }
+		public string outputFileName { get; set; }
+
+		public bool matchWorkSheetNames { get; set; }
 		public List<DataWorkSheet> workSheets { get; set; }
 	}
 
@@ -191,6 +316,8 @@ namespace Read_XLSX
 		public List<SpecialCell> specialCells { get; set; }
 		public List<DataColumn> columns { get; set; }
 		public int StartRow { get; set; }
+
+
 
 		public List<SpecialCell> CopySpecialCells()
 		{

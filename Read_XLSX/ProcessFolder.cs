@@ -35,9 +35,11 @@ namespace Read_XLSX
 
 			if (dataFiles == null) dataFiles = new List<DataFile>();
 
+			var ss = new Spreadsheet(new DataSourceTypes());
+
 			foreach(var file in files)
 			{
-				var df = Spreadsheet.ProcessFile(file.FullName);
+				var df = ss.ProcessFile(file);
 				if (df != null) dataFiles.Add(df);
 			}
 

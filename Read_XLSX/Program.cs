@@ -18,18 +18,14 @@ namespace Read_XLSX
 	{
 		static void Main(string[] args)
 		{
-//			var dts = new DataSourceTypes();
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test\";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Community Outreach Health FairsPublic Events Notification (0113)";
 
-			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test\";
+			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Enrollee Roster and Facility Residence Report (0129)";
 
 			var dd = new DataDump(folder);
-			int fileCnt = dd.Scan();
-			fileCnt = dd.ProcessDataDump();
+			dd.ProcessDataDump();
 
-			//			var df = new DataFolder(folder);
-			//			var files = df.ProcessFolder();
-			//			Log.Msg($"Total Records: {df.RecCount()} over {files} files");
-			//			df.WriteData();
 			System.Console.WriteLine("Press any key to exit...");
 			System.Console.ReadLine();
 		}
