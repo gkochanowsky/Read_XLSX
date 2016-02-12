@@ -23,7 +23,7 @@ namespace Read_XLSX
 {
 	class DataSourceTypes
 	{
-		public List<DataSourceType> types { get; set; }
+		public List<SpreadSheetLayout> types { get; set; }
 
 		public DataSourceTypes()
 		{
@@ -35,9 +35,12 @@ namespace Read_XLSX
 		/// - when true then worksheet names must match DataSource type in order to be a match.
 		/// - when false then if any worksheets match data source layout then is a match
 		/// </remarks>
-		public DataSourceType DetermineType(SpreadsheetDocument ssd)
+		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd)
 		{
-			DataSourceType type = null;
+			// clear worksheet references.
+			types.ForEach(t => t.ssLayout.ForEach(s => s.srcWorksheets = null));
+
+			SpreadSheetLayout type = null;
 
 			WorkbookPart wbp = ssd.WorkbookPart;
 			var stringTable = wbp.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
@@ -45,13 +48,13 @@ namespace Read_XLSX
 
 			var shts = wbp.Workbook.Descendants<Sheet>();
 
-			var procTypes = types.Where(r => !r.matchWorkSheetNames || (r.matchWorkSheetNames && r.workSheets.Count() == shts.Count())).ToList();
+			var procTypes = types.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.ssLayout.Count() == shts.Count())).ToList();
 
 			int idx = 0;
 			foreach (var sht in shts)
 			// Get list of types with matching worksheet names in sequence.
 			{
-				procTypes = procTypes.Where(r => !r.matchWorkSheetNames || (r.matchWorkSheetNames && r.workSheets.ElementAt(idx).Name == sht.Name)).ToList();
+				procTypes = procTypes.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.ssLayout.Count() == shts.Count())).ToList();
 				idx++;
 			}
 
@@ -62,40 +65,44 @@ namespace Read_XLSX
 			{
 				bool isPass = true;
 
-				if (dst.matchWorkSheetNames)
+				switch (dst.procType)
 				{
-					foreach (var dws in dst.workSheets)
-					// Iterate through worksheets for type.
-					{
-						if (dws.layout == null) continue;
+					case ProcessType.MatchAllDataWorkSheets:
 
-						// Locate corresponding file worksheet based on type worksheet index.
-						var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dst.workSheets.IndexOf(dws));
-
-						WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
-
-						isPass &= CheckSignature(wsp.Worksheet, dws.layout.specialCells, dws.layout.columns, stringTable, cellFormats);
-					}
-				}
-				else
-				{
-					isPass = false;
-
-					foreach(var dws in dst.workSheets)
-					{
-						if (dws.layout == null) continue;
-
-						foreach(var sht in wbp.Workbook.Descendants<Sheet>())
+						foreach (var sheetLayout in dst.ssLayout)
+						// Iterate through worksheets for type.
 						{
+							if (sheetLayout.wsLayout == null) continue;
+
+							// Locate corresponding file worksheet based on type worksheet index.
+							var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dst.ssLayout.IndexOf(sheetLayout));
+
 							WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
-							isPass |= CheckSignature(wsp.Worksheet, dws.layout.specialCells, dws.layout.columns, stringTable, cellFormats);
+							isPass &= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats);
+						}
+						break;
+
+					case ProcessType.MatchByClosestWorkSheetLayout:
+
+						isPass = false;
+
+						foreach (var sheetLayout in dst.ssLayout)
+						{
+							if (sheetLayout.wsLayout == null) continue;
+
+							foreach (var sht in wbp.Workbook.Descendants<Sheet>())
+							{
+								WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
+
+								isPass |= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats);
+
+								if (isPass) break;
+							}
 
 							if (isPass) break;
 						}
-
-						if (isPass) break;
-					}
+						break;
 				}
 
 				if (isPass)
@@ -108,237 +115,353 @@ namespace Read_XLSX
 			return type;
 		}
 
-		public bool CheckSignature(Worksheet ws, List<SpecialCell> specialCells, List<DataColumn> dataColumns, SharedStringTablePart stringTable, CellFormats formats)
+		/// <remarks>
+		///		An Excel SpreadSheet contains one or more Worksheets, each may or maynot contain data of interest.
+		///			- Excel is a terrible way to collect data from a large number of different sources in a consistent and reliable way.
+		///			- Be that as it may, Excel is favored by organizations that prefer manpower over automation when performing data processing tasks.
+		///				- Most state agencies are typical of this kind of organization.
+		///					- To top it off most of these agencies give little thought to gathering data in a consistent way. So we are likely to
+		///						recieve a dump of spreadsheets with a variety of inconsistencies.
+		///		
+		///		As varied as these spreadsheets may be, a spreadsheet is expected to contain only a single type of data set which is called a
+		///			DataSourceType in this application.
+		///		
+		///		A DataSourceType describes how to process the worksheets in a spreadsheet. It indicates:
+		///			- the name of the file to save extracted data.
+		///			- a list of DataWorkSheets
+		///			- an indicator as to how to process the spreadsheet against the list of DataWorkSheets:
+		///			
+		///				• MatchAllDataWorkSheets 
+		///					- There must be a one to one correspondence between each DataWorkSheet and each SpreadSheet WorkSheet in order.
+		///					- The DataWorkSheet name must match the SpreadSheet WorkSheet name.
+		///					
+		///				• MatchByClosestWorkSheetLayout 
+		///					- Each SpreadSheet Worksheet will be matched against the closest DataWorkSheet/WorkSheetLayout
+		///		
+		///		A DataWorkSheet has
+		///			- a Name to be used when processing the spreadsheet by MatchAllDataWorkSheets.
+		///			- a WorkSheetLayout
+		/// 
+		///		A WorkSheetLayout is
+		///			- a collection of field layout versions with additional information about how to determine where to look 
+		///				for field cells on the spreadsheet.
+		///			- a collection of data columns with addition information about how to determine where to look
+		///				for the data column on the WorkSheet.
+		///		
+		///		- Each data column in the collection has associated with it a list of column titles that should 
+		///			map from the WorkSheet to the data column.
+		///			
+		///		- The WorkSheetLayout also includes a collection of col layout versions. Each of these is a list of cells 
+		///			that should be scraped for strings that are concatinated into a column title and the column to associate
+		///			the title with.
+		///			
+		///		- For a given WorkSheet all layouts are processed 
+		///		
+		///		There is a layout of column title cells that will be scaped for column titles. Those titles 
+		///		are then matched to a list of titles for a given data column. The assumption being that all titles to match
+		///		are unique across all data columns for a given WorkSheetLayout
+		/// </remarks>
+		public bool MatchLayouts(Worksheet ws, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats)
 		{
-			// Create a dictionary of cell reference expected value pairs for expected title cells
-			Dictionary<string, string> pairs = new Dictionary<string, string>();
-			specialCells.Where(sc => sc.TitleCellReference != null && sc.TitleString != null).ToList().ForEach(sc => pairs.Add(sc.TitleCellReference, sc.TitleString));
-			dataColumns.Where(dc => dc.TitleCellReference != null && dc.TitleString != null).ToList().ForEach(dc => pairs.Add(dc.TitleCellReference, dc.TitleString));
-
-			// All references to check
-			var refs = pairs.Select(p => p.Key).ToList();
-
 			// All cells in worksheet.
 			var tcs = ws.Descendants<Cell>();
 
-			// All referenced cells to check
-			var tcs_c = tcs.Where(t => refs.Contains(t.CellReference.InnerText));
+			// Find and map columns to sheet layouts
+			var field_ord = sheetLayout.wsLayout.fields
+							.Where(c => c.fldType == FieldType.column)
+							.OrderBy(c => c.OutputOrder)
+							.Select(c => c.OutputOrder)
+							.ToList();
 
-			// All referenced cells with computed and expected value.
-			var tcs_d = tcs_c.Select(t => new { cell = t, val = Spreadsheet.GetCellValue(t, stringTable.SharedStringTable, formats, null), expected = pairs[t.CellReference.InnerText] });
+			// Obtain column titles for all signature versions.
+			var fldColVersMaps = new List<FieldColumnVersionMap>();
 
-			// All cells where expected does not match value
-			var fail = tcs_d.Where(f => f.val != f.expected);
+			foreach(var sig in sheetLayout.wsLayout.colLayouts)
+			// for each column layout version scape the worksheet for column title values
+			{
+				var fldColMaps = new List<FieldColumnMap>();
 
-			fail.ToList().ForEach(a => Log.Msg($"Expected: '{a.expected}', Found: {a.val}"));
+				var col_ord = sig.titleLocations.OrderBy(so => so.col).Select(so => so.col).ToList();
 
-			// Should be zero if everything matched.
-			return fail.Count() == 0;
+				foreach(var colLayout in sig.titleLocations)
+				{
+					string title = "";
+					foreach(var c in colLayout.cellRefs)
+					// A column may have a number of title cells that must be scraped and concatinated to product the title used for matching to data columns.
+					{
+						var cl = tcs.FirstOrDefault(cll => cll.CellReference.InnerText == c);
+						var tlt = Spreadsheet.GetCellValue(cl, stringTable.SharedStringTable, formats, null);
+						title += tlt;
+					}
+
+					fldColMaps.Add(new FieldColumnMap { column = colLayout.col, title = title, col_order = col_ord.IndexOf(colLayout.col) });
+				}
+
+				fldColVersMaps.Add(new FieldColumnVersionMap { colLayout = sig, colmaps = fldColMaps });
+			}
+					
+			// Match the titles to the DataColumns
+			foreach(var fcvm in fldColVersMaps)
+			{
+				foreach(var cm in fcvm.colmaps)
+				{
+					cm.field = sheetLayout.wsLayout.fields.FirstOrDefault(cc => cc.titles.Contains(cm.title));
+					cm.field_order = cm.field != null ? field_ord.IndexOf(cm.field.OutputOrder) : -9999;
+				}
+
+				fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
+				fcvm.disOrder = (int)fcvm.colmaps.Select(dm => Math.Pow((dm.field_order - dm.col_order), 2)).Sum();
+				fcvm.colDups = fcvm.colmaps.GroupBy(cd => cd.field).Where(d => d.Count() > 1).Count();
+			}
+
+			// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
+			var colLayout_v = fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0).OrderByDescending(sv => sv.disOrder).FirstOrDefault();
+
+			sheetLayout.wsLayout.colLayoutVersionMap = colLayout_v;
+
+			// Obtain titles for all field cell layouts
+			var fldLayoutVerVals = new List<FieldCellVersionMap>();
+
+			foreach (var fldLayout in sheetLayout.wsLayout.cellLayouts)
+			{
+				var fldLayoutVals = new List<FieldCellMap>();
+
+				foreach(var cellLoc in fldLayout.cellLocations)
+				{
+					var cl = tcs.FirstOrDefault(cll => cll.CellReference.InnerText == cellLoc.TitleRef);
+					var clVal = tcs.FirstOrDefault(clv => clv.CellReference.InnerText == cellLoc.ValueRef);
+
+					var title = Spreadsheet.GetCellValue(cl, stringTable.SharedStringTable, formats, null);
+					var val = Spreadsheet.GetCellValue(clVal, stringTable.SharedStringTable, formats, null);
+					
+					fldLayoutVals.Add(new FieldCellMap { cellLoc = cellLoc, Title = title, Value = val });
+				}
+
+				fldLayoutVerVals.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
+			}
+
+			var reqFlds = sheetLayout.wsLayout.fields.Where(sf => sf.fldType == FieldType.cell && sf.isRequired);
+
+			// Match Titles to layout fields
+			foreach (var flvv in fldLayoutVerVals)
+			{
+				foreach(var fm in flvv.fldmaps)
+				{
+					foreach(var fld in sheetLayout.wsLayout.fields.Where(f => f.fldType == FieldType.cell))
+					{
+						if (fm.cellLoc.isCombined)
+						{
+							var titles = fld.titles.Where(t => t.StartsWith(fm.Title));
+
+							if (titles.Count() > 0)
+							{
+								fm.field = fld;
+								fm.Value = fm.Value.Replace(titles.FirstOrDefault(), "");
+								break;
+							}
+						}
+						else
+						{
+							if(fld.titles.Contains(fm.Title))
+							{
+								fm.field = fld;
+								break;
+							}
+						}
+					}
+				}
+
+				flvv.noMatchCnt = flvv.fldmaps.Where(fm => fm.field == null).Count();
+				flvv.missingReqFldCnt = reqFlds.Where(rf => !flvv.fldmaps.Select(fm => fm.field).Contains(rf)).Count();
+				flvv.noValCnt = flvv.fldmaps.Where(fm => string.IsNullOrWhiteSpace(fm.Value)).Count();
+			}
+
+			var fldLayout_v = fldLayoutVerVals.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
+
+			sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
+
+			// TODO: this criterion of selection may need to be improved.
+			if(sheetLayout.wsLayout.fieldCellMap != null && sheetLayout.wsLayout.colLayoutVersionMap != null)
+			{
+				if (sheetLayout.srcWorksheets == null)
+					sheetLayout.srcWorksheets = new List<Worksheet>();
+
+				sheetLayout.srcWorksheets.Add(ws);
+				return true;
+			}
+
+			return false;
 		}
 
 		private void Init()
 		{
-			// Create the datasheet layouts to be used by the data source types.
-			var cga = new DataWorkSheetLayout
+			var wsLayout_cga = new WorkSheetLayout
 			{
 				Name = "Complaint, Grievance and Appeal Information",
 
-				specialCells = new List<SpecialCell>
+				cellLayouts = new List<CellLayoutVersion>
 				{
-					new SpecialCell { CellReference = "E5", CellName = "MedicalProviderNbrs", TitleCellReference = "B5", TitleString = "Medicaid Provider #:" },
-					new SpecialCell { CellReference = "D6", CellName = "CalendarYr", TitleCellReference = "B6", TitleString = "Calendar Year:" },
-					new SpecialCell { CellReference = "D7", CellName = "PlanName", TitleCellReference = "B7", TitleString = "Plan Name:" },
-					new SpecialCell { CellReference = "O3", CellName = "TotalMMA", TitleCellReference = "P3", TitleString = "Total MMA" },
-					new SpecialCell { CellReference = "O4", CellName = "TotalLTC", TitleCellReference = "P4", TitleString = "Total LTC" },
-					new SpecialCell { CellReference = "B3", CellName = "Month" }
+					new CellLayoutVersion { Version = 1,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "B5", ValueRef = "E5" },
+							new CellLocation { TitleRef = "B6", ValueRef = "D6" },
+							new CellLocation { TitleRef = "B7", ValueRef = "D7" },
+							new CellLocation { TitleRef = "B3", ValueRef = "B3" }
+						}
+					}
 				},
 
-				columns = new List<DataColumn>
+				colLayouts = new List<ColumnLayoutVersion>
 				{
-					new DataColumn { col = 2, Name = "Region", DataFormat = DataFormatType.String, TitleCellReference = "B9", TitleString = "Region # (1 - 11)" },
-					new DataColumn { col = 3, Name = "County", DataFormat = DataFormatType.String, TitleCellReference = "C10", TitleString = "County Name Within Region:" },
-					new DataColumn { col = 4, Name = "MedicaidID", DataFormat = DataFormatType.String, TitleCellReference = "D9", TitleString = "Recipient's Medicaid ", isRequired = true },
-					new DataColumn { col = 5, Name = "LastName", DataFormat = DataFormatType.String, TitleCellReference = "E9", TitleString = "Recipient Last" },
-					new DataColumn { col = 6, Name = "FirstName", DataFormat = DataFormatType.String, TitleCellReference = "F9", TitleString = "Recipient First" },
-					new DataColumn { col = 7, Name = "MiddleInitial", DataFormat = DataFormatType.String, TitleCellReference = "G9", TitleString = "Mdl" },
-					new DataColumn { col = 8, Name = "GrievanceDate", DataFormat = DataFormatType.Date, TitleCellReference = "H9", TitleString = "Date of  Grievance" },
-					new DataColumn { col = 9, Name = "GrievanceType", DataFormat = DataFormatType.String, TitleCellReference = "I10", TitleString = "Grievance" },
-					new DataColumn { col = 10, Name = "AppealDate", DataFormat = DataFormatType.Date, TitleCellReference = "J10", TitleString = "Appeal" },
-					new DataColumn { col = 11, Name = "AppealAction", DataFormat = DataFormatType.String, TitleCellReference = "K10", TitleString = "Action " },
-					new DataColumn { col = 12, Name = "DispositionDate", DataFormat = DataFormatType.Date, TitleCellReference = "L10", TitleString = "Disposition" },
-					new DataColumn { col = 13, Name = "DispositionType", DataFormat = DataFormatType.String, TitleCellReference = "M10", TitleString = "Disposition" },
-					new DataColumn { col = 14, Name = "DispositionStatus", DataFormat = DataFormatType.String, TitleCellReference = "N8", TitleString = "Disposition Status         R=Resolved  P=Pending" },
-					new DataColumn { col = 15, Name = "ExpiditedRequest", DataFormat = DataFormatType.String, TitleCellReference = "O8", TitleString = "Expedited Request   Y=yes  N=No" },
-					new DataColumn { col = 16, Name = "FileType", DataFormat = DataFormatType.String, TitleCellReference = "P8", TitleString = "File Type:     GM=Griev MMA                    AM=Appeal MMA      GL=Griev LTC   AL=Appeal LTC" },
-					new DataColumn { col = 17, Name = "Originator", DataFormat = DataFormatType.String, TitleCellReference = "Q10", TitleString = "2 = Provider" },
-				},
-				StartRow = 11
-			};
-
-			var frer = new DataWorkSheetLayout
-			{
-				Name = "Enrollee Roster and Facility Residence Report",
-
-				specialCells = new List<SpecialCell>
-				{
-					new SpecialCell { CellReference = "B3", CellName = "MC_PlanName", TitleCellReference = "A3", TitleString = "Managed Care Plan Name : " },
-					new SpecialCell { CellReference = "B4", CellName = "MC_PlanID", TitleCellReference = "A4", TitleString = "Managed Care Plan ID :" },
-					new SpecialCell { CellReference = "B5", CellName = "Month", TitleCellReference = "A5", TitleString = "Reporting Month (MM/DD/YYYY):" }
+					new ColumnLayoutVersion { Version = 1,
+						titleLocations = new List<ColumnTitleLocation> {
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B9" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C10" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D9", "D10" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E9", "E10" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F9", "F10" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G9", "G10" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H9" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I9", "I10" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J9", "J10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K9", "K10" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L9", "L10" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M9", "M10" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N8" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O8" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P8" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q9","Q10" } },
+						}
+					}
 				},
 
-				columns = new List<DataColumn>
+				fields = new List<Field>
 				{
-					new DataColumn { col = 1, Name = "LastName", DataFormat = DataFormatType.String, TitleCellReference = "A7", TitleString = "Enrolee Last Name" },
-					new	DataColumn { col = 2, Name = "FirstName", DataFormat = DataFormatType.String, TitleCellReference = "B7", TitleString = "Enrolee First Name" },
-					new DataColumn { col = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, TitleCellReference = "C7", TitleString = "Medicaid ID", isRequired = true },
-					new DataColumn { col = 4, Name = "SSN", DataFormat = DataFormatType.String, TitleCellReference = "D7", TitleString = "Social Security Number" },
-					new DataColumn { col = 5, Name = "DOB", DataFormat = DataFormatType.Date, TitleCellReference = "E7", TitleString = "Date of Birth (mm/dd/yyyy)" },
-					new DataColumn { col = 6, Name = "Addr", DataFormat = DataFormatType.String, TitleCellReference = "F7", TitleString = "Physical Address" },
-					new DataColumn { col = 7, Name = "City", DataFormat = DataFormatType.String, TitleCellReference = "G7", TitleString = "City" },
-					new DataColumn { col = 8, Name = "Zip", DataFormat = DataFormatType.String, TitleCellReference = "H7", TitleString = "Zip Code" },
-					new DataColumn { col = 9, Name = "County", DataFormat = DataFormatType.String, TitleCellReference = "I7", TitleString = "County of Residence" },
-					new DataColumn { col = 9, Name = "Setting", DataFormat = DataFormatType.String, TitleCellReference = "J7", TitleString = "Residential Setting Type (Home, ALF, SNF or AFCH)" },
-					new DataColumn { col = 10, Name = "FacilityName", DataFormat = DataFormatType.String, TitleCellReference = "K7", TitleString = "Name of Facility" },
-					new DataColumn { col = 11, Name = "FacilityLic", DataFormat = DataFormatType.String, TitleCellReference = "L7", TitleString = "Facility License Number" },
-					new DataColumn { col = 12, Name = "Tansition", DataFormat = DataFormatType.String, TitleCellReference = "M7", TitleString = "Identify if transitioning into a SNF or back into Community (SNF, Community, or N/A)"},
-					new DataColumn { col = 13, Name = "TransistionDate", DataFormat = DataFormatType.Date, TitleCellReference = "N7", TitleString = "Date of transition to SNF or Community (if applicable)" },
-					new DataColumn { col = 14, Name = "Form2515Date", DataFormat = DataFormatType.Date, TitleCellReference = "O7", TitleString = "Date the 2515 form was sent to DCF if transitioning (if applicable)" },
-					new DataColumn { col = 15, Name = "canLocate", DataFormat = DataFormatType.String, TitleCellReference = "P7", TitleString = "			Able to Locate?" + System.Environment.NewLine + "			Y/N" },
-					new DataColumn { col = 16, Name = "canContact", DataFormat = DataFormatType.String, TitleCellReference = "Q7", TitleString = "			Able to Contact?" + System.Environment.NewLine + "			Y/N" },
-					new DataColumn { col = 17, Name = "LastContaceDate", DataFormat = DataFormatType.Date, TitleCellReference = "R7", TitleString = "If unable to contact or locate enrolee, date of last contact? (N/A if not applicable)" },
-					new DataColumn { col = 18, Name = "Comments", DataFormat = DataFormatType.String, TitleCellReference = "S7", TitleString = "Comments including demonstration of attempts to contact enrolee if applicable" }
+					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "Region", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Region # (1 - 11)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "County", DataFormat = DataFormatType.String,
+						titles = new List<string> { "County Name Within Region:" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Recipient's Medicaid ID#:" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "LastName", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Recipient LastName:" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "FirstName", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Recipient FirstName:" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 6, Name = "MiddleInitial", DataFormat = DataFormatType.String,
+						titles = new List<string> { "MdlInt." }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "GrievanceDate", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "Date of  Grievance" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "GrievanceType", DataFormat = DataFormatType.String,
+						titles = new List<string> { "(1 - 11) Type of Grievance" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "AppealDate", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "Date ofAppeal" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "AppealAction", DataFormat = DataFormatType.String,
+						titles = new List<string> { "(1 - 6) AppealAction " }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "DispositionDate", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "Date ofDisposition" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DispositionType", DataFormat = DataFormatType.String,
+						titles = new List<string> { "(1 - 12) Type ofDisposition" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "DispositionStatus", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Disposition Status         R=Resolved  P=Pending" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "ExpiditedRequest", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Expedited Request   Y=yes  N=No" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "FileType", DataFormat = DataFormatType.String,
+						titles = new List<string> { "File Type:     GM=Griev MMA                    AM=Appeal MMA      GL=Griev LTC   AL=Appeal LTC" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Originator", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Originator   1=Enrollee2 = Provider" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 17, Name = "MedicalProviderNbrs", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Medicaid Provider #:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "CalendarYr", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Calendar Year:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "PlanName", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Plan Name:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 20, Name = "Month", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "January", "February", "March", "April", "May", "June",
+													"July", "August", "September", "October", "November", "December" }
+					},
 				},
 
-				StartRow = 8
-			};
-
-			var efrr = new DataWorkSheetLayout
-			{
-				Name = "Enrollee Facility Residence Report ",
-
-				specialCells = new List<SpecialCell>
-				{
-					new SpecialCell { CellReference = "A3", CellName = "MC_PlanName" },
-					new SpecialCell { CellReference = "A4", CellName = "MC_PlanID" },
-					new SpecialCell { CellReference = "A5", CellName = "Month" }
-				},
-
-				columns = new List<DataColumn>
-				{
-					new DataColumn { col = 1, Name = "LastName", DataFormat = DataFormatType.String, TitleCellReference = "A7", TitleString = "Last Name" },
-					new DataColumn { col = 2, Name = "FirstName", DataFormat = DataFormatType.String, TitleCellReference = "B7", TitleString = "First Name" },
-					new DataColumn { col = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, TitleCellReference = "C7", TitleString = "Medicaid ID", isRequired = true },
-					new DataColumn { col = 4, Name = "SSN", DataFormat = DataFormatType.String, TitleCellReference = "D7", TitleString = "Social Security Number" },
-					new DataColumn { col = 5, Name = "DOB", DataFormat = DataFormatType.Date, TitleCellReference = "E7", TitleString = "Date of Birth (mm/dd/yyyy)" },
-					new DataColumn { col = 6, Name = "Addr", DataFormat = DataFormatType.String, TitleCellReference = "F7", TitleString = "Physical Address\n(full street address)" },
-					new DataColumn { col = 7, Name = "City", DataFormat = DataFormatType.String, TitleCellReference = "G7", TitleString = "City" },
-					new DataColumn { col = 8, Name = "Zip", DataFormat = DataFormatType.String, TitleCellReference = "H7", TitleString = "Zip Code" },
-					new DataColumn { col = 9, Name = "County", DataFormat = DataFormatType.String, TitleCellReference = "I7", TitleString = "County of Residence" },
-					new DataColumn { col = 9, Name = "Setting", DataFormat = DataFormatType.String, TitleCellReference = "J7", TitleString = "Type of Facility" },
-					new DataColumn { col = 10, Name = "FacilityName", DataFormat = DataFormatType.String, TitleCellReference = "K7", TitleString = "Name of Facility" },
-					new DataColumn { col = 11, Name = "FacilityLic", DataFormat = DataFormatType.String, TitleCellReference = "L7", TitleString = "Facility License Number" },
-				},
-
-				StartRow = 8
+				FirstRow = 11,
 			};
 
 			// Create list of data source types.
-			types = new List<DataSourceType>
+			types = new List<SpreadSheetLayout>
 			{
-				new DataSourceType
+				new SpreadSheetLayout
 				{
 					Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
 					outputFileName = "Complaint_Greivance_Appeal_Info_0127",
-					matchWorkSheetNames = true,
-					workSheets = new List<DataWorkSheet>
+					procType = ProcessType.MatchAllDataWorkSheets,
+					ssLayout = new List<SheetLayout>
 					{
-						new DataWorkSheet { Name = "Instructions" },
-						new DataWorkSheet { Name = "Codes" },
-						new DataWorkSheet { Name = "January", layout = cga },
-						new DataWorkSheet { Name = "February", layout = cga },
-						new DataWorkSheet { Name = "March", layout = cga },
-						new DataWorkSheet { Name = "April", layout = cga },
-						new DataWorkSheet { Name = "May", layout = cga },
-						new DataWorkSheet { Name = "June", layout = cga },
-						new DataWorkSheet { Name = "July", layout = cga },
-						new DataWorkSheet { Name = "August", layout = cga },
-						new DataWorkSheet { Name = "September", layout = cga },
-						new DataWorkSheet { Name = "October", layout = cga },
-						new DataWorkSheet { Name = "November", layout = cga },
-						new DataWorkSheet { Name = "December", layout = cga },
-						new DataWorkSheet { Name = "Summary" }
+						new SheetLayout { Name = "Instructions" },
+						new SheetLayout { Name = "Codes" },
+						new SheetLayout { Name = "January", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "February", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "March", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "April", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "May", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "June", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "July", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "August", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "September", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "October", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "November", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "December", wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "Summary" }
 					}
 				},
-
-				new DataSourceType
-				{
-					Name = "Enrollee Facility Residence Report ",
-					outputFileName = "Enrollee_Facility_Residence_0129",
-					matchWorkSheetNames = false,
-					workSheets = new List<DataWorkSheet>
-					{
-						new DataWorkSheet { layout = frer }
-					}
-				},
-
-				new DataSourceType
-				{
-					Name = "Enrollee Facility Residence Report",
-					outputFileName = "Enrollee_Facility_Residence_0129_v2",
-					matchWorkSheetNames = false,
-					workSheets = new List<DataWorkSheet>
-					{
-						new DataWorkSheet { layout = efrr }
-					}
-				}
 			};
 		}
 	}
 
-	class DataSourceType
+	#region Supporting Definitions
+
+	public enum ProcessType
+	{
+		MatchAllDataWorkSheets,
+		MatchByClosestWorkSheetLayout
+	}
+
+	class SpreadSheetLayout
 	{
 		public string Name { get; set; }
 		public string outputFileName { get; set; }
 
-		public bool matchWorkSheetNames { get; set; }
-		public List<DataWorkSheet> workSheets { get; set; }
+		public ProcessType procType;
+
+		public List<SheetLayout> ssLayout { get; set; }
 	}
 
-	class DataWorkSheet
+	class SheetLayout
 	{
 		public string Name { get; set; }
-		public DataWorkSheetLayout layout { get; set; }
-	}
+		public WorkSheetLayout wsLayout { get; set; }
 
-	class DataWorkSheetLayout
-	{
-		public string Name { get; set; }
-		public List<SpecialCell> specialCells { get; set; }
-		public List<DataColumn> columns { get; set; }
-		public int StartRow { get; set; }
-
-
-
-		public List<SpecialCell> CopySpecialCells()
-		{
-			return specialCells.Select(s => new SpecialCell
-			{
-				CellReference = s.CellReference,
-				CellName = s.CellName,
-				Value = s.Value,
-				TitleCellReference = s.TitleCellReference,
-				TitleString = s.TitleString
-			}).ToList();
-		}
-	}
-
-	class SpecialCell
-	{
-		public string CellReference { get; set; }
-		public string CellName { get; set; }
-		public string Value { get; set; }
-		public string TitleCellReference { get; set; }
-		public string TitleString { get; set; }
+		/// <summary>
+		/// Link to matched worksheet in source xlsx file.
+		/// </summary>
+		public List<Worksheet> srcWorksheets { get; set; }
 	}
 
 	public enum DataFormatType
@@ -348,14 +471,136 @@ namespace Read_XLSX
 		Date
 	}
 
-	class DataColumn
+	class WorkSheetLayout
+	{
+		/// <summary>
+		/// May correspond to SpreadSheet WorkSheet name.
+		/// </summary>
+		public string Name { get; set; }
+
+		/// <summary>
+		/// Versions of sheet cell title and value locations to match for data cell extraction
+		/// </summary>
+		public List<CellLayoutVersion> cellLayouts { get; set; }
+
+		/// <summary>
+		/// Versions of sheet column title cells to match for data column cell extraction
+		/// </summary>
+		public List<ColumnLayoutVersion> colLayouts { get; set; }
+		/// <summary>
+		/// List of data columns present on worksheet
+		/// </summary>
+		public List<Field> fields { get; set; }
+		/// <summary>
+		/// There first row of data in the WorkSheet
+		/// </summary>
+		public int FirstRow { get; set; }
+
+		public FieldCellVersionMap fieldCellMap { get; set; }
+		public FieldColumnVersionMap colLayoutVersionMap { get; set; }
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	class ColumnLayoutVersion
+	{
+		public int Version { get; set; }
+
+		public List<ColumnTitleLocation> titleLocations { get; set; }
+	}
+
+	/// <summary>
+	/// Location of data column title cells
+	/// </summary>
+	class ColumnTitleLocation
 	{
 		public int col { get; set; }
+
+		public List<string> cellRefs { get; set; }
+	}
+
+	public enum FieldType
+	{
+		cell,
+		column
+	}
+
+	class Field
+	{
+		public FieldType fldType { get; set; }
+
 		public string Name { get; set; }
-		public string TitleCellReference { get; set; }
-		public string TitleString { get; set; }
+
+		public int OutputOrder { get; set; }
+
 		public bool isRequired { get; set; }
 
 		public DataFormatType DataFormat { get; set; }
+
+		public List<string> titles { get; set; }
 	}
+
+	/// <summary>
+	/// The collection of data field cells locations for a version of the worksheet.
+	/// </summary>
+	class CellLayoutVersion
+	{
+		public int Version { get; set; }
+		public List<CellLocation> cellLocations { get; set; }
+	}
+
+	/// <summary>
+	/// Location of a data field cell title and value.
+	/// </summary>
+	class CellLocation
+	{
+		public string TitleRef { get; set; }
+		public string ValueRef { get; set; }
+		public bool isCombined { get; set; }
+	}
+
+	class FieldColumnMap
+	{
+		public int column { get; set; }
+
+		public string title { get; set; }
+
+		public Field field { get; set; }
+
+		public int col_order { get; set; }
+
+		public int field_order { get; set; }
+	}
+
+	class FieldColumnVersionMap
+	{
+		public ColumnLayoutVersion colLayout { get; set; }
+		public List<FieldColumnMap> colmaps { get; set; }
+		public int noMatchCnt { get; set; }
+		public int disOrder { get; set; }
+		public int colDups { get; set; }
+	}
+
+	class FieldCellVersionMap
+	{
+		public CellLayoutVersion fldLayout { get; set; }
+		public List<FieldCellMap> fldmaps { get; set; }
+		public int noMatchCnt { get; set; }
+		public int noValCnt { get; set; }
+		public int missingReqFldCnt { get; set; }
+	}
+
+	class FieldCellMap
+	{
+		public string Title { get; set; }
+
+		public string Value { get; set; }
+
+		public CellLocation cellLoc { get; set; }
+
+		public Field field { get; set; }
+	}
+
+	#endregion
 }
