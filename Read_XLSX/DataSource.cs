@@ -35,7 +35,7 @@ namespace Read_XLSX
 		/// - when true then worksheet names must match DataSource type in order to be a match.
 		/// - when false then if any worksheets match data source layout then is a match
 		/// </remarks>
-		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd)
+		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd, FileInfo file)
 		{
 			// clear worksheet references.
 			types.ForEach(t => t.ssLayout.ForEach(s => s.srcWorksheets = null));
@@ -79,7 +79,7 @@ namespace Read_XLSX
 
 							WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
-							isPass &= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats);
+							isPass &= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
 						}
 						break;
 
@@ -95,7 +95,7 @@ namespace Read_XLSX
 							{
 								WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
-								isPass |= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats);
+								isPass |= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
 
 								if (isPass) break;
 							}
@@ -161,7 +161,7 @@ namespace Read_XLSX
 		///		are then matched to a list of titles for a given data column. The assumption being that all titles to match
 		///		are unique across all data columns for a given WorkSheetLayout
 		/// </remarks>
-		public bool MatchLayouts(Worksheet ws, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats)
+		public bool MatchLayouts(Worksheet ws, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats, FileInfo file)
 		{
 			// All cells in worksheet.
 			var tcs = ws.Descendants<Cell>();
@@ -269,6 +269,12 @@ namespace Read_XLSX
 							}
 						}
 					}
+				}
+
+				var fileFld = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.fileName);
+				if ( fileFld != null)
+				{
+					flvv.fldmaps.Add(new FieldCellMap { field = fileFld, Value = file.FullName });
 				}
 
 				flvv.noMatchCnt = flvv.fldmaps.Where(fm => fm.field == null).Count();
@@ -399,6 +405,7 @@ namespace Read_XLSX
 						titles = new List<string> { "January", "February", "March", "April", "May", "June",
 													"July", "August", "September", "October", "November", "December" }
 					},
+					new Field { fldType = FieldType.fileName, OutputOrder = 21, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				},
 
 				FirstRow = 11,
@@ -523,7 +530,8 @@ namespace Read_XLSX
 	public enum FieldType
 	{
 		cell,
-		column
+		column,
+		fileName,
 	}
 
 	class Field

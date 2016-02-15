@@ -23,19 +23,18 @@ namespace Read_XLSX
 {
 	class DataCellValue
 	{
+		public Field field { get; set; }
 		public string CellReference { get; set; }
-		public int Col { get; set; }
 		public string Value { get; set; }
+		public int rowNumber { get; set; }
 		public DataRow Row { get; set; }
 	}
 
 	class DataRow
 	{
 		public int Row { get; set; }
-		public List<DataCellValue> Cells { get; set; }
-
+		public Dictionary<int, DataCellValue> Cells { get; set; }
 		public DataSheet Sheet { get; set; }
-
 		public DataRow(int row)
 		{
 			Row = row;
@@ -43,52 +42,57 @@ namespace Read_XLSX
 
 		public DataCellValue AddDataCell(DataCellValue dc)
 		{
-			if (Cells == null) Cells = new List<DataCellValue>();
+			if (Cells == null) Cells = new Dictionary<int, DataCellValue>();
 
-			if (Cells.Where(c => c.CellReference == dc.CellReference).Count() > 0)
+			if (Cells.Where(c => c.Value.CellReference == dc.CellReference).Count() > 0)
 				throw new Exception("Cell has already been recorded");
 			dc.Row = this;
-			Cells.Add(dc);
+			Cells.Add(dc.field.OutputOrder, dc);
 
 			return dc;
 		}
 
-		public bool HasRequiredCol(List<Field> reqCol)
+		public bool HasRequiredCol(List<int> reqCol)
 		{
-			//var cc = Cells.Select(c => c.);
-			//var missing = reqCol.Where(r => !cc.Contains(r));
-			//return missing.Count() == 0;
-			throw new Exception("Implement Me");
+			var cols = Cells.Select(c => c.Key).ToList();
+			var missing = reqCol.Where(r => !cols.Contains(r));
+			return missing.Count() == 0;
 		}
 
 		public StringBuilder DelimitedRow(StringBuilder sb, List<Field> datacols, string delim)
 		{
-			// Build list of columns from column list and cell data. Missing cells will have blank column value.
-			//var cols = datacols.Select(dc => { var c = Cells.FirstOrDefault(cl => cl.Col == dc.col); return new DataCellValue { Value = (c == null ? "" : c.Value ?? "") }; }).ToList();
-			//cols.AddRange(Sheet.addedCells);
-			//// Don't want a delimiter after last column.
-			//int idx = 0;
-			//foreach (var v in cols)
-			//{
-			//	sb.Append(v.Value ?? "");
-			//	if (++idx < cols.Count())
-			//		sb.Append(delim);
-			//}
+			int lastCol = datacols.Max(d => d.OutputOrder);
+			foreach (var v in datacols.OrderBy(d => d.OutputOrder))
+			{
+				string val = null;
 
-			//return sb;
+				switch (v.fldType)
+				{
+					case FieldType.column:
+						val = Cells.ContainsKey(v.OutputOrder) ? Cells[v.OutputOrder].Value ?? "" : "";
+						break;
+					case FieldType.cell:
+					case FieldType.fileName:
+						var df = this.Sheet.CellData.FirstOrDefault(cd => cd.field.OutputOrder == v.OutputOrder);
+						val = (df != null ? df.Value ?? "" : "");
+						break;
+				}
 
-			throw new Exception("Impement me");
+				// Don't want a delimiter after last column.
+				sb.Append(val + (v.OutputOrder < lastCol ? delim : ""));
+			}
+
+			return sb;
 		}
 	}
 
 	class DataSheet
 	{
 		public string Name { get; set; }
-		List<FieldCellMap> CellData { get; set; }
+		public List<FieldCellMap> CellData { get; set; }
 		public List<Field> Fields { get; set; }
 		public Dictionary<int, DataRow> Rows { get; set; }
-
-		private List<Field> RequiredFields { get; set; }
+		private List<int> RequiredCols { get; set; }
 		public DataFile File { get; set; }
 
 		public DataSheet(string name, List<Field> fields, List<FieldCellMap> cellData)
@@ -96,21 +100,20 @@ namespace Read_XLSX
 			Name = name;
 			CellData = cellData;
 			Fields = fields;
-			RequiredFields = fields.Where(c => c.isRequired).ToList();
+			RequiredCols = fields.Where(c => c.isRequired && c.fldType == FieldType.column).Select(c => c.OutputOrder).ToList();
 		}
 
 		public DataRow AddCell(DataCellValue dc)
 		{
-			int rowNum = Spreadsheet.GetRowNum(dc.CellReference);
 			if (Rows == null) Rows = new Dictionary<int, DataRow>();
 			DataRow dr;
-			if(Rows.ContainsKey(rowNum))
-				dr = Rows[rowNum];
+			if(Rows.ContainsKey(dc.rowNumber))
+				dr = Rows[dc.rowNumber];
 			else
 			{
-				dr = new DataRow(rowNum);
+				dr = new DataRow(dc.rowNumber);
 				dr.Sheet = this;
-				Rows.Add(rowNum, dr);
+				Rows.Add(dc.rowNumber, dr);
 			}
 			dr.AddDataCell(dc);
 			return dr;
@@ -120,7 +123,7 @@ namespace Read_XLSX
 		{
 			if (Rows == null) return;
 
-			var drop = Rows.Where(r => !r.Value.HasRequiredCol(RequiredFields));
+			var drop = Rows.Where(r => !r.Value.HasRequiredCol(RequiredCols));
 			drop.ToList().ForEach(d => Rows.Remove(d.Key));
 		}
 
@@ -139,14 +142,11 @@ namespace Read_XLSX
 
 		public StringBuilder GetColumnHeaders(StringBuilder sb, string fldDelimiter, string rowDelimieter)
 		{
-			var cols = new List<Field>();
-			cols.AddRange(Fields);
-//			cols.AddRange(SpecialCells.Select(s => new WorkSheetDataColumn { Name = s.CellName }).ToList());
 			int idx = 0;
-			foreach (var c in cols)
+			foreach (var c in Fields)
 			{
 				sb.Append(c.Name);
-				if (++idx < cols.Count())
+				if (++idx < Fields.Count())
 					sb.Append(fldDelimiter);
 			}
 			sb.Append(rowDelimieter);
@@ -190,7 +190,6 @@ namespace Read_XLSX
 
 		public StringBuilder GetDelimitedRows(StringBuilder sb, string fldDelimiter, string rowDelimiter)
 		{
-
 			DataSheets.ForEach(s => { s.GetDelimitedRows(sb, fldDelimiter, rowDelimiter); });
 			return sb;
 		}
@@ -215,7 +214,7 @@ namespace Read_XLSX
 			{
 				using (SpreadsheetDocument ss = SpreadsheetDocument.Open(file.FullName, false))
 				{
-					dataFile.dst = _dsts.DetermineLayout(ss);
+					dataFile.dst = _dsts.DetermineLayout(ss, file);
 
 					if (dataFile.dst == null)
 					{
@@ -254,24 +253,18 @@ namespace Read_XLSX
 
 		private void ProcessCells(SheetLayout sLayout, WorksheetPart wsp, DataSheet dataSheet)
 		{
+			Dictionary<int, Field> cols = new Dictionary<int, Field>();
+			sLayout.wsLayout.colLayoutVersionMap.colmaps.ForEach(cm => cols.Add(cm.column, cm.field));
+			
 			var tcs = wsp.Worksheet.Descendants<Cell>()
 										.Where(c => c.InnerText.Length > 0)
 										.Select(t => new { cell = t, row = GetRowNum(t.CellReference.InnerText), col = GetColumn(t.CellReference.InnerText) })
-										.Where(k => k.row >= sLayout.wsLayout.FirstRow && cols.Contains(k.col));
-			string sval = null;
+										.Where(k => k.row >= sLayout.wsLayout.FirstRow && cols.ContainsKey(k.col));
 
 			foreach (var tc in tcs)
 			{
-				int row = tc.row;
-				int col = tc.col;
-				var colmn = sLayout.wsLayout.colLayoutVersionMap.colmaps
-								.Where(cm => row >= sLayout.wsLayout.FirstRow && cm.column == col)
-								.Select(cm => cm.field)
-								.FirstOrDefault();
-
-				sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, colmn);
-
-				var dataCell = new DataCellValue { CellReference = tc.cell.CellReference.InnerText, Col = col, Value = sval };
+				string sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, cols[tc.col]);
+				var dataCell = new DataCellValue { CellReference = tc.cell.CellReference.InnerText, rowNumber = tc.row, field = cols[tc.col], Value = sval };
 				dataSheet.AddCell(dataCell);
 			}
 		}
