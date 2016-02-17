@@ -219,7 +219,7 @@ namespace Read_XLSX
 
 					if (dataFile.dst == null)
 					{
-						Log.Msg($"FAILURE: {file.FullName}: Unable to determine format type of file");
+						Log.New.Msg($"FAILURE: {file.FullName}: Unable to determine format type of file");
 						return dataFile;
 					}
 
@@ -241,13 +241,13 @@ namespace Read_XLSX
 				}
 
 				dataFile.DropRows();
-				Log.Msg($"processed {dataFile.RecCount()} records from file: {file.Name}");
+				Log.New.Msg($"processed {dataFile.RecCount()} records from file: {file.Name}");
 				return dataFile;
 
 			}
 			catch (Exception ex)
 			{
-				Log.Msg(ex, $"loading file: {file.Name}");
+				Log.New.Msg(ex, $"loading file: {file.Name}");
 				return null;
 			}
 		}

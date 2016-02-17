@@ -33,7 +33,7 @@ namespace Read_XLSX
 		{
 			if (!Directory.Exists(rootFolder))
 			{
-				Log.Msg($"Root directory: {rootFolder} does not exist");
+				Log.New.Msg($"Root directory: {rootFolder} does not exist");
 				return;
 			}
 
@@ -127,7 +127,7 @@ namespace Read_XLSX
 			{
 				if (!File.Exists(file))
 				{
-					Log.Msg($"XLS file: {file} could not be converted to XLSX because it doesn't exist.");
+					Log.New.Msg($"XLS file: {file} could not be converted to XLSX because it doesn't exist.");
 					continue;
 				}
 
@@ -135,7 +135,7 @@ namespace Read_XLSX
 				wb.SaveAs(Filename: file + "x", FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook);
 				wb.Close();
 				++cnt;
-				Log.Msg($"Converted: {file} to .xlsx");
+				Log.New.Msg($"Converted: {file} to .xlsx");
 			}
 
 			app.Quit();
@@ -165,7 +165,7 @@ namespace Read_XLSX
 					if (File.Exists(outPath))
 						File.Delete(outPath);
 
-					Log.Msg($"Writing {df.Sum(d => d.RecCount())} records to {outPath}");
+					Log.New.Msg($"Writing {df.Sum(d => d.RecCount())} records to {outPath}");
 
 					File.WriteAllText(outPath, sb.ToString(), Encoding.ASCII);
 					sb.Clear();

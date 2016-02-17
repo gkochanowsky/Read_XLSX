@@ -213,7 +213,7 @@ namespace Read_XLSX
 					}
 					catch(Exception ex)
 					{
-						Log.Msg(ex);
+						Log.New.Msg(ex);
 					}
 				}
 
@@ -253,7 +253,7 @@ namespace Read_XLSX
 					}
 					catch(Exception ex)
 					{
-						Log.Msg(ex);
+						Log.New.Msg(ex);
 					}
 				}
 
@@ -314,7 +314,7 @@ namespace Read_XLSX
 						}
 						catch (Exception ex)
 						{
-							Log.Msg(ex);
+							Log.New.Msg(ex);
 						}
 					}
 				}
