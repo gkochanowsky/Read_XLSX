@@ -18,6 +18,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Xml.Linq;
 
 namespace Read_XLSX
 {
@@ -259,7 +260,7 @@ namespace Read_XLSX
 			var tcs = wsp.Worksheet.Descendants<Cell>()
 										.Where(c => c.InnerText.Length > 0)
 										.Select(t => new { cell = t, row = GetRowNum(t.CellReference.InnerText), col = GetColumn(t.CellReference.InnerText) })
-										.Where(k => k.row >= sLayout.wsLayout.FirstRow && cols.ContainsKey(k.col));
+										.Where(k => k.row >= sLayout.wsLayout.colLayoutVersionMap.colLayout.FirstRow && cols.ContainsKey(k.col));
 
 			foreach (var tc in tcs)
 			{
@@ -268,7 +269,6 @@ namespace Read_XLSX
 				dataSheet.AddCell(dataCell);
 			}
 		}
-
 
 		public static int GetRowNum(string address)
 		{
@@ -297,8 +297,7 @@ namespace Read_XLSX
 			int styleIndex;
 			CellFormat cellFormat = null;
 
-			if (c == null || c.CellValue == null)
-				return sval;
+			if (c == null) return null;
 
 			if (c.StyleIndex != null)
 			{
@@ -306,6 +305,8 @@ namespace Read_XLSX
 				cellFormat = (CellFormat)formats.ElementAt(styleIndex);
 			}
 
+			if (c == null || c.CellValue == null)
+				return sval;
 
 			if (c.DataType != null && c.CellFormula == null)
 			{
@@ -333,7 +334,18 @@ namespace Read_XLSX
 							sval = d.ToString("MM/dd/yy");
 						}
 						else
-							sval = null;
+						{
+							DateTime tv;
+							if(sval != null && DateTime.TryParse(sval, out tv))
+							{
+								if (colmn.DataFormat == DataFormatType.Date)
+									sval = tv.ToShortDateString();
+								else
+									sval = tv.ToString();
+							}
+							else
+								sval = null;
+						}
 						break;
 					case DataFormatType.DateTime:
 						var dt = DateTime.FromOADate(double.Parse(c.CellValue.InnerText));

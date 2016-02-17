@@ -194,6 +194,7 @@ namespace Read_XLSX
 						title += tlt;
 					}
 
+					title = System.Text.RegularExpressions.Regex.Replace(title.Replace('\n', ' '), @"\s+", " ").Trim();
 					fldColMaps.Add(new FieldColumnMap { column = colLayout.col, title = title, col_order = col_ord.IndexOf(colLayout.col) });
 				}
 
@@ -205,13 +206,20 @@ namespace Read_XLSX
 			{
 				foreach(var cm in fcvm.colmaps)
 				{
-					cm.field = sheetLayout.wsLayout.fields.FirstOrDefault(cc => cc.titles.Contains(cm.title));
-					cm.field_order = cm.field != null ? field_ord.IndexOf(cm.field.OutputOrder) : -9999;
+					try
+					{
+						cm.field = sheetLayout.wsLayout.fields.Where(cc => cc.fldType == FieldType.column && cc.titles != null).FirstOrDefault(cc => cc.titles.Contains(cm.title));
+						cm.field_order = cm.field != null ? field_ord.IndexOf(cm.field.OutputOrder) : -9999;
+					}
+					catch(Exception ex)
+					{
+						Log.Msg(ex);
+					}
 				}
 
 				fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
-				fcvm.disOrder = (int)fcvm.colmaps.Select(dm => Math.Pow((dm.field_order - dm.col_order), 2)).Sum();
-				fcvm.colDups = fcvm.colmaps.GroupBy(cd => cd.field).Where(d => d.Count() > 1).Count();
+				fcvm.disOrder = (int)fcvm.colmaps.Where(dm => dm.field != null).Select(dm => Math.Pow((dm.field_order - dm.col_order), 2)).Sum();
+				fcvm.colDups = fcvm.colmaps.Where(dm => dm.field != null).GroupBy(cd => cd.field).Where(d => d.Count() > 1).Count();
 			}
 
 			// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
@@ -228,13 +236,25 @@ namespace Read_XLSX
 
 				foreach(var cellLoc in fldLayout.cellLocations)
 				{
-					var cl = tcs.FirstOrDefault(cll => cll.CellReference.InnerText == cellLoc.TitleRef);
-					var clVal = tcs.FirstOrDefault(clv => clv.CellReference.InnerText == cellLoc.ValueRef);
+					try
+					{
+						var cl = tcs.FirstOrDefault(cll => cll.CellReference.InnerText == cellLoc.TitleRef);
+						var clVal = tcs.FirstOrDefault(clv => clv.CellReference.InnerText == cellLoc.ValueRef);
 
-					var title = Spreadsheet.GetCellValue(cl, stringTable.SharedStringTable, formats, null);
-					var val = Spreadsheet.GetCellValue(clVal, stringTable.SharedStringTable, formats, null);
-					
-					fldLayoutVals.Add(new FieldCellMap { cellLoc = cellLoc, Title = title, Value = val });
+						var title = Spreadsheet.GetCellValue(cl, stringTable.SharedStringTable, formats, null);
+						var val = Spreadsheet.GetCellValue(clVal, stringTable.SharedStringTable, formats, null);
+
+						fldLayoutVals.Add(new FieldCellMap
+						{
+							cellLoc = cellLoc,
+							Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim(),
+							Value = string.IsNullOrWhiteSpace(val) ? null : val.Trim()
+						});
+					}
+					catch(Exception ex)
+					{
+						Log.Msg(ex);
+					}
 				}
 
 				fldLayoutVerVals.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
@@ -245,28 +265,56 @@ namespace Read_XLSX
 			// Match Titles to layout fields
 			foreach (var flvv in fldLayoutVerVals)
 			{
-				foreach(var fm in flvv.fldmaps)
+				foreach(var fm in flvv.fldmaps.Where(m => m.Title != null))
 				{
 					foreach(var fld in sheetLayout.wsLayout.fields.Where(f => f.fldType == FieldType.cell))
 					{
-						if (fm.cellLoc.isCombined)
+						try
 						{
-							var titles = fld.titles.Where(t => t.StartsWith(fm.Title));
-
-							if (titles.Count() > 0)
+							if (fm.cellLoc.isCombined)
 							{
-								fm.field = fld;
-								fm.Value = fm.Value.Replace(titles.FirstOrDefault(), "");
-								break;
+								var titles = fld.titles.Where(t => fm.Title.StartsWith(t));
+
+								if (titles.Count() > 0)
+								{
+									fm.field = fld;
+									fm.Value = fm.Value != null ? fm.Value.Replace(titles.FirstOrDefault(), "").Trim() : null;
+									if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
+									{
+										var val = fm.Value.Replace("(", "").Replace(")", "").Replace(":", "");
+										DateTime outVal;
+										if (DateTime.TryParse(val, out outVal))
+										{
+											if (fld.DataFormat == DataFormatType.Date)
+												fm.Value = outVal.ToShortDateString();
+											else
+												fm.Value = outVal.ToString();
+										}
+										else
+											fm.Value = null;
+									}
+									break;
+								}
+							}
+							else
+							{
+								if (fm.Title != null && fld.titles.Contains(fm.Title))
+								{
+									fm.field = fld;
+
+									if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
+									{
+										var cell = tcs.Where(c => c.CellReference == fm.cellLoc.ValueRef).FirstOrDefault();
+										fm.Value = Spreadsheet.GetCellValue(cell, stringTable.SharedStringTable, formats, fld);
+									}
+
+									break;
+								}
 							}
 						}
-						else
+						catch (Exception ex)
 						{
-							if(fld.titles.Contains(fm.Title))
-							{
-								fm.field = fld;
-								break;
-							}
+							Log.Msg(ex);
 						}
 					}
 				}
@@ -279,7 +327,7 @@ namespace Read_XLSX
 
 				flvv.noMatchCnt = flvv.fldmaps.Where(fm => fm.field == null).Count();
 				flvv.missingReqFldCnt = reqFlds.Where(rf => !flvv.fldmaps.Select(fm => fm.field).Contains(rf)).Count();
-				flvv.noValCnt = flvv.fldmaps.Where(fm => string.IsNullOrWhiteSpace(fm.Value)).Count();
+				flvv.noValCnt = flvv.fldmaps.Where(fm => fm.field != null && fm.field.isRequired && string.IsNullOrWhiteSpace(fm.Value)).Count();
 			}
 
 			var fldLayout_v = fldLayoutVerVals.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
@@ -295,7 +343,7 @@ namespace Read_XLSX
 				sheetLayout.srcWorksheets.Add(ws);
 				return true;
 			}
-
+			
 			return false;
 		}
 
@@ -320,7 +368,9 @@ namespace Read_XLSX
 
 				colLayouts = new List<ColumnLayoutVersion>
 				{
-					new ColumnLayoutVersion { Version = 1,
+					new ColumnLayoutVersion
+					{
+						Version = 1,
 						titleLocations = new List<ColumnTitleLocation> {
 							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B9" } },
 							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C10" } },
@@ -338,7 +388,8 @@ namespace Read_XLSX
 							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O8" } },
 							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P8" } },
 							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q9","Q10" } },
-						}
+						},
+						FirstRow = 11
 					}
 				},
 
@@ -407,8 +458,394 @@ namespace Read_XLSX
 					},
 					new Field { fldType = FieldType.fileName, OutputOrder = 21, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				},
+			};
 
-				FirstRow = 11,
+			var wsLayout_erfr = new WorkSheetLayout
+			{
+				Name = "Enrollee Roster and Facility Residence Report",
+
+				cellLayouts = new List<CellLayoutVersion>
+				{
+					new CellLayoutVersion
+					{
+						Version = 1,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A1", ValueRef = "C1" },
+							new CellLocation { TitleRef = "A2", ValueRef = "C2" },
+							new CellLocation { TitleRef = "A3", ValueRef = "C3" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 1,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A2", ValueRef = "C2" },
+							new CellLocation { TitleRef = "A3", ValueRef = "C3" },
+							new CellLocation { TitleRef = "A4", ValueRef = "C4" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 2,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A3", ValueRef = "B3" },
+							new CellLocation { TitleRef = "A4", ValueRef = "B4" },
+							new CellLocation { TitleRef = "A5", ValueRef = "B5" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 3,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A3", ValueRef = "C3" },
+							new CellLocation { TitleRef = "A4", ValueRef = "C4" },
+							new CellLocation { TitleRef = "A5", ValueRef = "C5" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 4,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A3", ValueRef = "C3" },
+							new CellLocation { TitleRef = "A4", ValueRef = "C4" },
+							new CellLocation { TitleRef = "A5", ValueRef = "D5" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 5,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A3", ValueRef = "D3" },
+							new CellLocation { TitleRef = "A4", ValueRef = "D4" },
+							new CellLocation { TitleRef = "A5", ValueRef = "D5" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 6,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true }
+						}
+					}
+				},
+
+				colLayouts = new List<ColumnLayoutVersion>
+				{
+					new ColumnLayoutVersion
+					{
+						Version = 1,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H7" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I7" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J7" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K7" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L7" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M7" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N7" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O7" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P7" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q7" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "R7" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "S7" } },
+						},
+						FirstRow = 8
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 2,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H7" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I7" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J7" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K7" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L7" } },
+						},
+						FirstRow = 8
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 3,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A6" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B6" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C6" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D6" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E6" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F6" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G6" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H6" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I6" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J6" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K6" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L6" } },
+						},
+						FirstRow = 7
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 4,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A6" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B6" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D6" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F6" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G6" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I6" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J6" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L6" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N6" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O6" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q6" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "S6" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "T6" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "V6" } },
+							new ColumnTitleLocation { col = 24, cellRefs = new List<string> { "X6" } },
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "Y6" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "AA6" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "AB6" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "AD6" } },
+						},
+						FirstRow = 7
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 5,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A5" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B5" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C5" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D5" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E5" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F5" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G5" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H5" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I5" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J5" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K5" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L5" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M5" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N5" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O5" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P5" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q5" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "R5" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "S5" } },
+						},
+						FirstRow = 6
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 6,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H7" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I7" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J7" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K7" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L7" } },
+						},
+						FirstRow = 8
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 7,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B8" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C8" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D8" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E8" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F8" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G8" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I8" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J8" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K8" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L8" } },
+						},
+						FirstRow = 9
+					},
+				},
+
+				fields = new List<Field>
+				{
+					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "LastName", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Enrollee Last Name",
+							"Enrolee Last Name",
+							"Last Name"
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "FirstName", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Enrollee First Name",
+							"Enrolee First Name",
+							"First Name"
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Medicaid ID" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Social Security Number" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "DOB", DataFormat = DataFormatType.DateTime,
+						titles = new List<string>
+						{
+							"Date of Birth (mm/dd/yyyy)",
+							"Date of Birth (MM/DD/YYYY)"
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 6, Name = "Addr", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Physical Address",
+							"Physical Address (full street address)",
+							"Address",
+							"Physical Address (Full Street Address)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "City", DataFormat = DataFormatType.String,
+						titles = new List<string> { "City" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "Zip", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Zip Code",
+							"Zip code"
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "County", DataFormat = DataFormatType.String,
+						titles = new List<string> { "County of Residence" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "Region", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Region" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "FacilityType", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"County of ResidenceResidential Setting Type (Home, ALF, SNF or AFCH)",
+							"County of ResidenceType of Facility",
+							"Type of Facility",
+							"Residential Setting Type (Home, ALF, SNF or AFCH)"
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "FacilityName", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Name of Facility",
+							"Name of Facility (if applicable)",
+							"Name of the Facility (if applicable)",
+							"Name of the Facility",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "FacilityLic", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Facility License Number",
+							"Facility License Number (if applicable)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "Tansition", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Identify if transitioning into a SNF or back into Community (SNF, Community, or N/A)",
+							"Identify if transitioning into a SNF or back into Community (snf, Community, or N/A)",
+							"Residential Setting Type (Home, ALF, SNF or AFCH",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "TransistionDate", DataFormat = DataFormatType.Date,
+						titles = new List<string>
+						{
+							"Date of transition to SNF or Community (if applicable)",
+							"Date of transition to SNF or Community",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Form2515Date", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Date the 2515 form was sent to DCF if transitioning (if applicable)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 17, Name = "canLocate", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Able to Locate? Y/N" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 18, Name = "canContact", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Able to Contact? Y/N" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 19, Name = "LastContactDate", DataFormat = DataFormatType.Date,
+						titles = new List<string>
+						{
+							"If unable to contact or locate enrolee, date of last contact? (N/A if not applicable)",
+							"If unable to contact or locate enrollee, date of last contact? (N/A if not applicable)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 20, Name = "Comments", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Comments including demonstration of attempts to contact enrolee if applicable",
+							"Comments including demonstration of attempts to contact enrollee if applicable"
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 21, Name = "MC_PlanName", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string>
+						{
+							"Managed Care Plan Name :",
+							"Managed Care Plan Name:",
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 22, Name = "MC_PlanID", DataFormat = DataFormatType.String, 
+						titles = new List<string>
+						{
+							"Managed Care Plan ID:",
+							"Managed Care Plan ID :"
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 23, Name = "Month", DataFormat = DataFormatType.Date, isRequired = true,
+						titles = new List<string>
+						{
+							"Reporting Month (MM/DD/YYYY):",
+							"Reporting Month:",
+							"Reporting Month"
+						}
+					},
+					new Field { fldType = FieldType.fileName, OutputOrder = 24, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+				},
 			};
 
 			// Create list of data source types.
@@ -438,6 +875,17 @@ namespace Read_XLSX
 						new SheetLayout { Name = "Summary" }
 					}
 				},
+
+				new SpreadSheetLayout
+				{
+					Name = "Enrollee Roster and Facility Residence Report (0129)",
+					outputFileName = "Enrollee_Roster_Facility_Residence",
+					procType = ProcessType.MatchByClosestWorkSheetLayout,
+					ssLayout = new List<SheetLayout>
+					{
+						new SheetLayout { wsLayout = wsLayout_erfr }
+					}
+				}
 			};
 		}
 	}
@@ -501,7 +949,7 @@ namespace Read_XLSX
 		/// <summary>
 		/// There first row of data in the WorkSheet
 		/// </summary>
-		public int FirstRow { get; set; }
+//		public int FirstRow { get; set; }
 
 		public FieldCellVersionMap fieldCellMap { get; set; }
 		public FieldColumnVersionMap colLayoutVersionMap { get; set; }
@@ -515,6 +963,8 @@ namespace Read_XLSX
 		public int Version { get; set; }
 
 		public List<ColumnTitleLocation> titleLocations { get; set; }
+
+		public int FirstRow { get; set; }
 	}
 
 	/// <summary>
