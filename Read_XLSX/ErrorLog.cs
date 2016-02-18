@@ -28,6 +28,12 @@ namespace Read_XLSX
 			filePath = Path.Combine(Directory.GetCurrentDirectory(), $"Extract_XLXS_Data_Log_{timestamp.ToString("yyyyMMdd_HHmmss")}.txt" );
 		}
 
+		public static void SetDir(string dir, DateTime stamp)
+		{	
+			instance.timestamp = stamp;
+			instance.filePath = Path.Combine(dir, $"Extract_XLXS_Data_Log_{instance.timestamp.ToString("yyyyMMdd_HHmmss")}.txt");
+		}
+
 		public static Log New {  get { return instance; } }
 
 		public void Msg(string msg, string loc = null)

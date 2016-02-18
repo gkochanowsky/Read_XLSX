@@ -184,7 +184,7 @@ namespace Read_XLSX
 			_dsts = dsts;
 		}
 
-		public void ProcessFile(FileInfo file)
+		public int ProcessFile(FileInfo file)
 		{
 			try
 			{
@@ -195,7 +195,7 @@ namespace Read_XLSX
 					if (ssLayout == null)
 					{
 						Log.New.Msg($"FAILURE: {file.FullName}: Unable to determine format type of file");
-						return;
+						return 0;
 					}
 
 					WorkbookPart wbp = ss.WorkbookPart;
@@ -224,12 +224,14 @@ namespace Read_XLSX
 					ss.Close();
 
 					ssLayout = null;
+
+					return recCnt;
 				}
 			}
 			catch (Exception ex)
 			{
 				Log.New.Msg(ex, $"loading file: {file.Name}");
-				return;
+				return 0;
 			}
 		}
 
@@ -337,6 +339,18 @@ namespace Read_XLSX
 
 			if (sval != null && colmn != null && colmn.postProcRegex != null && colmn.postProcRegex.Count() == 2)
 				sval = Regex.Replace(sval, colmn.postProcRegex[0], colmn.postProcRegex[1]);
+
+			if (sval != null)
+			{
+				//if (sval.Length > 4000)
+				//{
+				//	Log.New.Msg($"truncating to length 4000 cell: {c.CellReference.InnerText} contents: {sval}");
+				//	sval = sval.Substring(0, 4000);
+				//}
+
+				sval = sval.Replace("\t", "");
+			}
+
 			return sval;
 		}
 	}

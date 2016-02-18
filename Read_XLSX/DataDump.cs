@@ -92,12 +92,15 @@ namespace Read_XLSX
 		private void ExtractData()
 		{
 			var ss = new Spreadsheet(_dsts);
+			int recCnt = 0;
 
 			// Process XLSX files.
 			foreach (var file in xlsxFiles)
 			{
-				ss.ProcessFile(file);
+				recCnt += ss.ProcessFile(file);
 			}
+
+			Log.New.Msg($"Processed {recCnt} records");
 		}
 
 		public int ConvertXLS()

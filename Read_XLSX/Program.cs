@@ -25,10 +25,22 @@ namespace Read_XLSX
 
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Enrollee Roster and Facility Residence Report (0129)";
 
-			Log.New.Msg($"Started {DateTime.Now.ToString()}");
+			
+			var startDT = DateTime.Now;
+			Log.SetDir(folder, startDT);
+
+			Log.New.Msg($"Started {startDT.ToString()}");
 
 			var dd = new DataDump(folder);
 			dd.ProcessDataDump();
+
+			var endDT = DateTime.Now;
+
+			Log.New.Msg($"Ended {endDT.ToString()}");
+
+			var elapsed = endDT - startDT;
+
+			Log.New.Msg($"Elapsed time: {elapsed.Hours.ToString("00")}:{elapsed.Minutes.ToString("00")}:{elapsed.Seconds.ToString("00")} hh:mm:ss");
 
 			System.Console.WriteLine("Press any key to exit...");
 			System.Console.ReadLine();
