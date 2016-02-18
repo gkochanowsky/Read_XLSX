@@ -23,10 +23,16 @@ namespace Read_XLSX
 {
 	class DataSourceTypes
 	{
+		public readonly DateTime timeStamp;
+
+		public string RootFolder;
+
 		public List<SpreadSheetLayout> types { get; set; }
 
-		public DataSourceTypes()
+		public DataSourceTypes(string rootFolder)
 		{
+			RootFolder = rootFolder;
+			timeStamp = DateTime.Now;
 			Init();
 		}
 
@@ -37,8 +43,53 @@ namespace Read_XLSX
 		/// </remarks>
 		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd, FileInfo file)
 		{
-			// clear worksheet references.
-			types.ForEach(t => t.ssLayout.ForEach(s => s.srcWorksheets = null));
+			// clear working references.
+			types.ForEach(t => t.sLayouts.ForEach(s => 
+			{
+				if(s.srcWorksheets != null)
+				{
+					s.srcWorksheets.Clear();
+					s.srcWorksheets = null;
+				}
+			
+				if(s.dataSet != null)
+				{
+					if(s.dataSet.Rows != null)
+					{
+						s.dataSet.Rows.ToList().ForEach(r =>
+						{
+							r.Value.Cells.Clear();
+							r.Value.Cells = null;
+						});
+
+						s.dataSet.Rows.Clear();
+						s.dataSet.Rows = null;
+					}
+					s.dataSet.wsLayout = null;
+					s.dataSet = null;
+				}
+				
+				if (s.wsLayout != null)
+				{
+					if(s.wsLayout.fieldColMap != null)
+					{
+						if(s.wsLayout.fieldColMap.colmaps != null)
+						{
+							s.wsLayout.fieldColMap.colmaps.Clear();
+							s.wsLayout.fieldColMap.colmaps = null;
+						}
+
+						s.wsLayout.fieldColMap = null;
+					}
+					
+					if(s.wsLayout.fieldCellMap != null)
+					{
+						s.wsLayout.fieldCellMap.fldmaps.Clear();
+						s.wsLayout.fieldCellMap.fldmaps = null;
+						s.wsLayout.fieldCellMap = null;
+					}
+				}
+			}));
 
 			SpreadSheetLayout type = null;
 
@@ -48,13 +99,13 @@ namespace Read_XLSX
 
 			var shts = wbp.Workbook.Descendants<Sheet>();
 
-			var procTypes = types.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.ssLayout.Count() == shts.Count())).ToList();
+			var procTypes = types.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.sLayouts.Count() == shts.Count())).ToList();
 
 			int idx = 0;
 			foreach (var sht in shts)
 			// Get list of types with matching worksheet names in sequence.
 			{
-				procTypes = procTypes.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.ssLayout.Count() == shts.Count())).ToList();
+				procTypes = procTypes.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.sLayouts.Count() == shts.Count())).ToList();
 				idx++;
 			}
 
@@ -69,13 +120,13 @@ namespace Read_XLSX
 				{
 					case ProcessType.MatchAllDataWorkSheets:
 
-						foreach (var sheetLayout in dst.ssLayout)
+						foreach (var sheetLayout in dst.sLayouts)
 						// Iterate through worksheets for type.
 						{
 							if (sheetLayout.wsLayout == null) continue;
 
 							// Locate corresponding file worksheet based on type worksheet index.
-							var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dst.ssLayout.IndexOf(sheetLayout));
+							var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dst.sLayouts.IndexOf(sheetLayout));
 
 							WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
@@ -87,7 +138,7 @@ namespace Read_XLSX
 
 						isPass = false;
 
-						foreach (var sheetLayout in dst.ssLayout)
+						foreach (var sheetLayout in dst.sLayouts)
 						{
 							if (sheetLayout.wsLayout == null) continue;
 
@@ -217,6 +268,7 @@ namespace Read_XLSX
 					}
 				}
 
+				fcvm.noneNullTitleCnt = fcvm.colmaps.Where(cm => !string.IsNullOrWhiteSpace(cm.title)).Count();
 				fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
 				fcvm.disOrder = (int)fcvm.colmaps.Where(dm => dm.field != null).Select(dm => Math.Pow((dm.field_order - dm.col_order), 2)).Sum();
 				fcvm.colDups = fcvm.colmaps.Where(dm => dm.field != null).GroupBy(cd => cd.field).Where(d => d.Count() > 1).Count();
@@ -225,10 +277,10 @@ namespace Read_XLSX
 			// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
 			var colLayout_v = fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0).OrderByDescending(sv => sv.disOrder).FirstOrDefault();
 
-			sheetLayout.wsLayout.colLayoutVersionMap = colLayout_v;
+			sheetLayout.wsLayout.fieldColMap = colLayout_v;
 
 			// Obtain titles for all field cell layouts
-			var fldLayoutVerVals = new List<FieldCellVersionMap>();
+			var fldCellVersMaps = new List<FieldCellVersionMap>();
 
 			foreach (var fldLayout in sheetLayout.wsLayout.cellLayouts)
 			{
@@ -257,13 +309,13 @@ namespace Read_XLSX
 					}
 				}
 
-				fldLayoutVerVals.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
+				fldCellVersMaps.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
 			}
 
 			var reqFlds = sheetLayout.wsLayout.fields.Where(sf => sf.fldType == FieldType.cell && sf.isRequired);
 
 			// Match Titles to layout fields
-			foreach (var flvv in fldLayoutVerVals)
+			foreach (var flvv in fldCellVersMaps)
 			{
 				foreach(var fm in flvv.fldmaps.Where(m => m.Title != null))
 				{
@@ -325,17 +377,18 @@ namespace Read_XLSX
 					flvv.fldmaps.Add(new FieldCellMap { field = fileFld, Value = file.FullName });
 				}
 
+				flvv.noneNullTitleCnt = flvv.fldmaps.Where(fm => !string.IsNullOrWhiteSpace(fm.Title)).Count();
 				flvv.noMatchCnt = flvv.fldmaps.Where(fm => fm.field == null).Count();
 				flvv.missingReqFldCnt = reqFlds.Where(rf => !flvv.fldmaps.Select(fm => fm.field).Contains(rf)).Count();
 				flvv.noValCnt = flvv.fldmaps.Where(fm => fm.field != null && fm.field.isRequired && string.IsNullOrWhiteSpace(fm.Value)).Count();
 			}
 
-			var fldLayout_v = fldLayoutVerVals.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
+			var fldLayout_v = fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
 
 			sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
 
 			// TODO: this criterion of selection may need to be improved.
-			if(sheetLayout.wsLayout.fieldCellMap != null && sheetLayout.wsLayout.colLayoutVersionMap != null)
+			if(sheetLayout.wsLayout.fieldCellMap != null && sheetLayout.wsLayout.fieldColMap != null)
 			{
 				if (sheetLayout.srcWorksheets == null)
 					sheetLayout.srcWorksheets = new List<Worksheet>();
@@ -343,8 +396,30 @@ namespace Read_XLSX
 				sheetLayout.srcWorksheets.Add(ws);
 				return true;
 			}
-			
-			return false;
+
+			if (sheetLayout.wsLayout.fieldCellMap == null)
+			{
+				Log.New.Msg("\t\tFailed to map cells to fields");
+				var bstMatch = fldCellVersMaps
+									.OrderBy(fcm => fcm.noMatchCnt)
+									.ThenBy(fcm => fcm.noValCnt)
+									.ThenByDescending(fcm => fcm.noneNullTitleCnt)
+									.ThenBy(fcm => fcm.missingReqFldCnt)
+									.FirstOrDefault();
+				bstMatch.fldmaps.ForEach(cv => Log.New.Msg($"\t\t\tTitle: {cv.Title}, Value: {cv.Value}"));
+			}
+
+			if (sheetLayout.wsLayout.fieldColMap == null)
+			{
+				Log.New.Msg("\t\tFailed to map cells to columns");
+				var bstMatch = fldColVersMaps
+									.OrderBy(ccm => ccm.noMatchCnt)
+									.ThenByDescending(ccm => ccm.noneNullTitleCnt)
+									.FirstOrDefault();
+				bstMatch.colmaps.Where(cm => cm.field == null).ToList().ForEach(cv => Log.New.Msg($"\t\t\tCol: {cv.column}, Title: {cv.title}"));
+			}
+
+			return false; 
 		}
 
 		private void Init()
@@ -352,6 +427,10 @@ namespace Read_XLSX
 			var wsLayout_cga = new WorkSheetLayout
 			{
 				Name = "Complaint, Grievance and Appeal Information",
+				OutputFileName = "Data_Extract_Complaint_Greivance_Appeal_Info_0127",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				dst = this,
 
 				cellLayouts = new List<CellLayoutVersion>
 				{
@@ -463,6 +542,10 @@ namespace Read_XLSX
 			var wsLayout_erfr = new WorkSheetLayout
 			{
 				Name = "Enrollee Roster and Facility Residence Report",
+				OutputFileName = "Data_Extract_Enrollee_Roster_Facility_Residence",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				dst = this,
 
 				cellLayouts = new List<CellLayoutVersion>
 				{
@@ -721,13 +804,15 @@ namespace Read_XLSX
 							"First Name"
 						}
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, isRequired = true,
+					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", isRequired = true,
+						DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
 						titles = new List<string> { "Medicaid ID" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN",
+						DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
 						titles = new List<string> { "Social Security Number" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "DOB", DataFormat = DataFormatType.DateTime,
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "DOB", DataFormat = DataFormatType.Date,
 						titles = new List<string>
 						{
 							"Date of Birth (mm/dd/yyyy)",
@@ -777,7 +862,8 @@ namespace Read_XLSX
 							"Name of the Facility",
 						}
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "FacilityLic", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "FacilityLic",
+						DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
 						titles = new List<string>
 						{
 							"Facility License Number",
@@ -854,9 +940,9 @@ namespace Read_XLSX
 				new SpreadSheetLayout
 				{
 					Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
-					outputFileName = "Complaint_Greivance_Appeal_Info_0127",
 					procType = ProcessType.MatchAllDataWorkSheets,
-					ssLayout = new List<SheetLayout>
+					types = this,
+					sLayouts = new List<SheetLayout>
 					{
 						new SheetLayout { Name = "Instructions" },
 						new SheetLayout { Name = "Codes" },
@@ -879,9 +965,9 @@ namespace Read_XLSX
 				new SpreadSheetLayout
 				{
 					Name = "Enrollee Roster and Facility Residence Report (0129)",
-					outputFileName = "Enrollee_Roster_Facility_Residence",
 					procType = ProcessType.MatchByClosestWorkSheetLayout,
-					ssLayout = new List<SheetLayout>
+					types = this,
+					sLayouts = new List<SheetLayout>
 					{
 						new SheetLayout { wsLayout = wsLayout_erfr }
 					}
@@ -901,17 +987,25 @@ namespace Read_XLSX
 	class SpreadSheetLayout
 	{
 		public string Name { get; set; }
-		public string outputFileName { get; set; }
 
 		public ProcessType procType;
 
-		public List<SheetLayout> ssLayout { get; set; }
+		public List<SheetLayout> sLayouts { get; set; }
+
+		public DataSourceTypes types { get; set; }
+
+		public void Write()
+		{
+			sLayouts.ForEach(s => s.dataSet.Write());
+		}
 	}
 
 	class SheetLayout
 	{
 		public string Name { get; set; }
 		public WorkSheetLayout wsLayout { get; set; }
+
+		public DataSet dataSet { get; set; }
 
 		/// <summary>
 		/// Link to matched worksheet in source xlsx file.
@@ -933,6 +1027,14 @@ namespace Read_XLSX
 		/// </summary>
 		public string Name { get; set; }
 
+		public string OutputFileName { get; set; }
+
+		public string fldDelim { get; set; }
+
+		public string recDelim { get; set; }
+
+		public DataSourceTypes dst { get; set; }
+
 		/// <summary>
 		/// Versions of sheet cell title and value locations to match for data cell extraction
 		/// </summary>
@@ -946,13 +1048,10 @@ namespace Read_XLSX
 		/// List of data columns present on worksheet
 		/// </summary>
 		public List<Field> fields { get; set; }
-		/// <summary>
-		/// There first row of data in the WorkSheet
-		/// </summary>
-//		public int FirstRow { get; set; }
+
 
 		public FieldCellVersionMap fieldCellMap { get; set; }
-		public FieldColumnVersionMap colLayoutVersionMap { get; set; }
+		public FieldColumnVersionMap fieldColMap { get; set; }
 	}
 
 	/// <summary>
@@ -996,6 +1095,8 @@ namespace Read_XLSX
 
 		public DataFormatType DataFormat { get; set; }
 
+		public List<string> postProcRegex { get; set; }
+
 		public List<string> titles { get; set; }
 	}
 
@@ -1038,6 +1139,7 @@ namespace Read_XLSX
 		public int noMatchCnt { get; set; }
 		public int disOrder { get; set; }
 		public int colDups { get; set; }
+		public int noneNullTitleCnt { get; set; }
 	}
 
 	class FieldCellVersionMap
@@ -1047,6 +1149,7 @@ namespace Read_XLSX
 		public int noMatchCnt { get; set; }
 		public int noValCnt { get; set; }
 		public int missingReqFldCnt { get; set; }
+		public int noneNullTitleCnt { get; set; }
 	}
 
 	class FieldCellMap

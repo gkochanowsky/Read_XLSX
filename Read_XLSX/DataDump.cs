@@ -25,8 +25,6 @@ namespace Read_XLSX
 		public List<FileInfo> xlsxFiles { get; set; }
 		public List<FileInfo> zipFiles { get; set; }
 
-		public List<DataFile> dataFiles { get; set; }
-
 		public DataSourceTypes _dsts;
 
 		public DataDump(string rootFolder)
@@ -38,7 +36,7 @@ namespace Read_XLSX
 			}
 
 			RootFolder = rootFolder;
-			_dsts = new DataSourceTypes();
+			_dsts = new DataSourceTypes(rootFolder);
 		}
 
 		public int Scan()
@@ -78,9 +76,6 @@ namespace Read_XLSX
 
 			// Determine DataSourceType and extract data from all xlsx files.
 			ExtractData();
-
-			// Write accumulated extracted data for each DataSourceType.
-			WriteData();
 		}
 
 		private void ConvertFiles()
@@ -96,15 +91,12 @@ namespace Read_XLSX
 
 		private void ExtractData()
 		{
-			if (dataFiles == null) dataFiles = new List<DataFile>();
-
 			var ss = new Spreadsheet(_dsts);
 
 			// Process XLSX files.
 			foreach (var file in xlsxFiles)
 			{
-				var df = ss.ProcessFile(file);
-				dataFiles.Add(df);
+				ss.ProcessFile(file);
 			}
 		}
 
@@ -140,39 +132,6 @@ namespace Read_XLSX
 
 			app.Quit();
 			return cnt;
-		}
-
-		private bool WriteData()
-		{
-			_dsts.types.OrderBy(t => t.Name).ToList().ForEach(dst =>
-			{
-				StringBuilder sb = new StringBuilder();
-				var df = dataFiles.Where(f => f.dst == dst).ToList();
-
-				if (df.Count() > 0)
-				{
-					df.ForEach(f => f.GetDelimitedRows(sb, "\t", System.Environment.NewLine));
-
-					// Write the data to parent directory of root folder
-					var dir = Directory.GetParent(RootFolder);
-
-					if (dir == null) // User root folder is there is no parent directory.
-						dir = new DirectoryInfo(RootFolder);
-
-					var outFileName = $"{dst.outputFileName}_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}.txt";
-					var outPath = Path.Combine(RootFolder, outFileName);
-
-					if (File.Exists(outPath))
-						File.Delete(outPath);
-
-					Log.New.Msg($"Writing {df.Sum(d => d.RecCount())} records to {outPath}");
-
-					File.WriteAllText(outPath, sb.ToString(), Encoding.ASCII);
-					sb.Clear();
-				}
-			});
-
-			return true;
 		}
 	}
 }

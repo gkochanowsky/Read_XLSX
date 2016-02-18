@@ -62,8 +62,6 @@
     <Compile Include="DataDump.cs" />
     <Compile Include="DataSource.cs" />
     <Compile Include="ErrorLog.cs" />
-    <Compile Include="OutFile.cs" />
-    <Compile Include="ProcessFolder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Spreadsheet.cs" />

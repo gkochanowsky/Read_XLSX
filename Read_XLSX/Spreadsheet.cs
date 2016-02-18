@@ -35,7 +35,7 @@ namespace Read_XLSX
 	{
 		public int Row { get; set; }
 		public Dictionary<int, DataCellValue> Cells { get; set; }
-		public DataSheet Sheet { get; set; }
+		public DataSet Sheet { get; set; }
 		public DataRow(int row)
 		{
 			Row = row;
@@ -65,43 +65,47 @@ namespace Read_XLSX
 			int lastCol = datacols.Max(d => d.OutputOrder);
 			foreach (var v in datacols.OrderBy(d => d.OutputOrder))
 			{
-				string val = null;
-
-				switch (v.fldType)
+				try
 				{
-					case FieldType.column:
-						val = Cells.ContainsKey(v.OutputOrder) ? Cells[v.OutputOrder].Value ?? "" : "";
-						break;
-					case FieldType.cell:
-					case FieldType.fileName:
-						var df = this.Sheet.CellData.FirstOrDefault(cd => cd.field.OutputOrder == v.OutputOrder);
-						val = (df != null ? df.Value ?? "" : "");
-						break;
-				}
+					string val = null;
 
-				// Don't want a delimiter after last column.
-				sb.Append(val + (v.OutputOrder < lastCol ? delim : ""));
+					switch (v.fldType)
+					{
+						case FieldType.column:
+							val = Cells.ContainsKey(v.OutputOrder) ? Cells[v.OutputOrder].Value ?? "" : "";
+							break;
+						case FieldType.cell:
+						case FieldType.fileName:
+							var df = this.Sheet.wsLayout.fieldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == v.OutputOrder);
+							val = (df != null ? df.Value ?? "" : "");
+							break;
+					}
+
+					// Don't want a delimiter after last column.
+					sb.Append(val + (v.OutputOrder < lastCol ? delim : ""));
+				}
+				catch(Exception ex)
+				{
+					Log.New.Msg(ex);
+				}
 			}
 
+			Cells.Clear();
 			return sb;
 		}
 	}
 
-	class DataSheet
+	class DataSet
 	{
-		public string Name { get; set; }
-		public List<FieldCellMap> CellData { get; set; }
-		public List<Field> Fields { get; set; }
+//		public List<FieldCellMap> CellData { get; set; }
 		public Dictionary<int, DataRow> Rows { get; set; }
 		private List<int> RequiredCols { get; set; }
-		public DataFile File { get; set; }
+		public WorkSheetLayout wsLayout { get; set; }
 
-		public DataSheet(string name, List<Field> fields, List<FieldCellMap> cellData)
+		public DataSet(WorkSheetLayout layout)
 		{
-			Name = name;
-			CellData = cellData;
-			Fields = fields;
-			RequiredCols = fields.Where(c => c.isRequired && c.fldType == FieldType.column).Select(c => c.OutputOrder).ToList();
+			wsLayout = layout;
+			RequiredCols = layout.fields.Where(c => c.isRequired && c.fldType == FieldType.column).Select(c => c.OutputOrder).ToList();
 		}
 
 		public DataRow AddCell(DataCellValue dc)
@@ -135,64 +139,37 @@ namespace Read_XLSX
 
 		public StringBuilder GetDelimitedRows(StringBuilder sb, string fldDelimiter, string rowDelimiter)
 		{
-			if (sb.Length == 0)
-				GetColumnHeaders(sb, fldDelimiter, rowDelimiter);
-			Rows.ToList().ForEach(r => { r.Value.DelimitedRow(sb, Fields, fldDelimiter); sb.Append(rowDelimiter); });
+			Rows.ToList().ForEach(r => { r.Value.DelimitedRow(sb, wsLayout.fields, fldDelimiter); sb.Append(rowDelimiter); });
+			Rows.Clear();
 			return sb;
 		}
 
-		public StringBuilder GetColumnHeaders(StringBuilder sb, string fldDelimiter, string rowDelimieter)
+		public string GetColumnHeaders(StringBuilder sb, string fldDelimiter, string rowDelimieter)
 		{
 			int idx = 0;
-			foreach (var c in Fields)
+			foreach (var c in wsLayout.fields)
 			{
 				sb.Append(c.Name);
-				if (++idx < Fields.Count())
+				if (++idx < wsLayout.fields.Count())
 					sb.Append(fldDelimiter);
 			}
 			sb.Append(rowDelimieter);
-			return sb;
-		}
-	}
-
-	class DataFile
-	{
-		public string FilePath { get; set; }
-		public List<DataSheet> DataSheets { get; set; }
-		public SpreadSheetLayout dst { get; set; }
-
-		public DataFile(string filePath)
-		{
-			FilePath = filePath;
+			return sb.ToString();
 		}
 
-		public DataSheet AddDataSheet(string name, List<Field> colData, List<FieldCellMap> cellData)
+		public void Write()
 		{
-			if (DataSheets == null)
-				DataSheets = new List<DataSheet>();
+			string fn = $"{wsLayout.OutputFileName}_{wsLayout.dst.timeStamp.ToString("yyyyMMdd_HHmmss")}.txt";
 
-			var ds = new DataSheet(name, colData, cellData);
-			ds.File = this;
-			DataSheets.Add(ds);
-			return ds;
-		}
+			string fp = Path.Combine(wsLayout.dst.RootFolder, fn);
+			StringBuilder sb = new StringBuilder();
 
-		public void DropRows()
-		{
-			DataSheets.ForEach(s => s.DropRows());
-			var ds = DataSheets.Where(d => d.Rows == null || d.Rows.Count() == 0);
-			ds.ToList().ForEach(d => DataSheets.Remove(d));
-		}
+			if (!File.Exists(fp))
+				this.GetColumnHeaders(sb, wsLayout.fldDelim, wsLayout.recDelim);
 
-		public int RecCount()
-		{
-			return DataSheets.Sum(d => d.RecCount());
-		}
+			this.GetDelimitedRows(sb, wsLayout.fldDelim, wsLayout.recDelim);
 
-		public StringBuilder GetDelimitedRows(StringBuilder sb, string fldDelimiter, string rowDelimiter)
-		{
-			DataSheets.ForEach(s => { s.GetDelimitedRows(sb, fldDelimiter, rowDelimiter); });
-			return sb;
+			File.AppendAllText(fp, sb.ToString());
 		}
 	}
 
@@ -207,20 +184,18 @@ namespace Read_XLSX
 			_dsts = dsts;
 		}
 
-		public DataFile ProcessFile(FileInfo file)
+		public void ProcessFile(FileInfo file)
 		{
-			var dataFile = new DataFile(file.FullName);
-
 			try
 			{
 				using (SpreadsheetDocument ss = SpreadsheetDocument.Open(file.FullName, false))
 				{
-					dataFile.dst = _dsts.DetermineLayout(ss, file);
+					var ssLayout = _dsts.DetermineLayout(ss, file);
 
-					if (dataFile.dst == null)
+					if (ssLayout == null)
 					{
 						Log.New.Msg($"FAILURE: {file.FullName}: Unable to determine format type of file");
-						return dataFile;
+						return;
 					}
 
 					WorkbookPart wbp = ss.WorkbookPart;
@@ -229,44 +204,50 @@ namespace Read_XLSX
 					cellFormats = wbp.WorkbookStylesPart.Stylesheet.CellFormats;
 					var numberingFormats = wbp.WorkbookStylesPart.Stylesheet.NumberingFormats;
 
-					foreach (var sheetLayout in dataFile.dst.ssLayout.Where(ssl => ssl.wsLayout != null && ssl.srcWorksheets != null && ssl.srcWorksheets.Count() > 0))
+					foreach (var sheetLayout in ssLayout.sLayouts.Where(ssl => ssl.wsLayout != null && ssl.srcWorksheets != null && ssl.srcWorksheets.Count() > 0))
 					// Iterate through the worksheets for this data type
 					{
 						foreach(var sht in sheetLayout.srcWorksheets)
 						{
-							var dataSheet = dataFile.AddDataSheet(sheetLayout.Name, sheetLayout.wsLayout.fields, sheetLayout.wsLayout.fieldCellMap.fldmaps);
-							ProcessCells(sheetLayout, sht.WorksheetPart, dataSheet);
+							sheetLayout.dataSet = new DataSet(sheetLayout.wsLayout);
+							ProcessCells(sheetLayout, sht.WorksheetPart);
+							sheetLayout.dataSet.DropRows();
 						}
 					}
+
+					int recCnt = ssLayout.sLayouts.Where(s => s.dataSet != null).Sum(s => s.dataSet.RecCount());
+
+					ssLayout.Write();
+
+					Log.New.Msg($"processed { recCnt } records from file: {file.Name}");
+
+					ss.Close();
+
+					ssLayout = null;
 				}
-
-				dataFile.DropRows();
-				Log.New.Msg($"processed {dataFile.RecCount()} records from file: {file.Name}");
-				return dataFile;
-
 			}
 			catch (Exception ex)
 			{
 				Log.New.Msg(ex, $"loading file: {file.Name}");
-				return null;
+				return;
 			}
 		}
 
-		private void ProcessCells(SheetLayout sLayout, WorksheetPart wsp, DataSheet dataSheet)
+		private void ProcessCells(SheetLayout sLayout, WorksheetPart wsp)
 		{
 			Dictionary<int, Field> cols = new Dictionary<int, Field>();
-			sLayout.wsLayout.colLayoutVersionMap.colmaps.ForEach(cm => cols.Add(cm.column, cm.field));
+			sLayout.wsLayout.fieldColMap.colmaps.ForEach(cm => cols.Add(cm.column, cm.field));
 			
 			var tcs = wsp.Worksheet.Descendants<Cell>()
 										.Where(c => c.InnerText.Length > 0)
 										.Select(t => new { cell = t, row = GetRowNum(t.CellReference.InnerText), col = GetColumn(t.CellReference.InnerText) })
-										.Where(k => k.row >= sLayout.wsLayout.colLayoutVersionMap.colLayout.FirstRow && cols.ContainsKey(k.col));
+										.Where(k => k.row >= sLayout.wsLayout.fieldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
 
 			foreach (var tc in tcs)
 			{
 				string sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, cols[tc.col]);
 				var dataCell = new DataCellValue { CellReference = tc.cell.CellReference.InnerText, rowNumber = tc.row, field = cols[tc.col], Value = sval };
-				dataSheet.AddCell(dataCell);
+				sLayout.dataSet.AddCell(dataCell);
 			}
 		}
 
@@ -354,6 +335,8 @@ namespace Read_XLSX
 				}
 			}
 
+			if (sval != null && colmn != null && colmn.postProcRegex != null && colmn.postProcRegex.Count() == 2)
+				sval = Regex.Replace(sval, colmn.postProcRegex[0], colmn.postProcRegex[1]);
 			return sval;
 		}
 	}
