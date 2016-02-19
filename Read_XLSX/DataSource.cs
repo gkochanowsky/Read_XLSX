@@ -445,7 +445,7 @@ namespace Read_XLSX
 			var wsLayout_cga = new WorkSheetLayout
 			{
 				Name = "Complaint, Grievance and Appeal Information",
-				OutputFileName = "Data_Extract_Complaint_Greivance_Appeal_Info_0127",
+				OutputFileName = "Data_Extract_Complaint_Grievance_Appeal_Info_0127",
 				fldDelim = "\t",
 				recDelim = System.Environment.NewLine,
 				dst = this,
