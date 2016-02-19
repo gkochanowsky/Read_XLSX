@@ -21,6 +21,15 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Read_XLSX
 {
+	class MatchData
+	{
+		public bool isPass { get; set; }
+
+		public List<FieldColumnVersionMap> fldColVersMaps { get; set; }
+
+		public List<FieldCellVersionMap> fldCellVersMaps { get; set; }
+	}
+
 	class DataSourceTypes
 	{
 		public readonly DateTime timeStamp;
@@ -43,6 +52,8 @@ namespace Read_XLSX
 		/// </remarks>
 		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd, FileInfo file)
 		{
+			var mds = new List<MatchData>();
+
 			// clear working references.
 			types.ForEach(t => t.sLayouts.ForEach(s => 
 			{
@@ -99,15 +110,17 @@ namespace Read_XLSX
 
 			var shts = wbp.Workbook.Descendants<Sheet>();
 
-			var procTypes = types.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.sLayouts.Count() == shts.Count())).ToList();
+			var procTypes = types.Where(p => p.procType == ProcessType.MatchByClosestWorkSheetLayout || (shts.Count() >= p.sLayouts.Count(sl => !sl.isOptional) && shts.Count() <= p.sLayouts.Count()));
 
-			int idx = 0;
-			foreach (var sht in shts)
-			// Get list of types with matching worksheet names in sequence.
-			{
-				procTypes = procTypes.Where(r => r.procType == ProcessType.MatchByClosestWorkSheetLayout || (r.procType == ProcessType.MatchAllDataWorkSheets && r.sLayouts.Count() == shts.Count())).ToList();
-				idx++;
-			}
+			procTypes = procTypes
+				.Where(r => 
+					r.procType == ProcessType.MatchByClosestWorkSheetLayout || 
+					(
+						r.procType == ProcessType.MatchAllDataWorkSheets && 
+						r.sLayouts.Where(sl => !sl.isOptional && shts.Count() >= r.sLayouts.Count() && sl.Name != shts.ElementAt(r.sLayouts.IndexOf(sl)).Name).Count() == 0
+					)
+				)
+				.ToList();
 
 			if (procTypes.Count() == 0) return null;
 
@@ -120,17 +133,19 @@ namespace Read_XLSX
 				{
 					case ProcessType.MatchAllDataWorkSheets:
 
-						foreach (var sheetLayout in dst.sLayouts)
-						// Iterate through worksheets for type.
+						foreach(var sht in wbp.Workbook.Descendants<Sheet>())
 						{
-							if (sheetLayout.wsLayout == null) continue;
+							var sheetLayout = dst.sLayouts.FirstOrDefault(sl => sl.Name == sht.Name);
 
-							// Locate corresponding file worksheet based on type worksheet index.
-							var sht = wbp.Workbook.Descendants<Sheet>().ElementAt(dst.sLayouts.IndexOf(sheetLayout));
+							if (sheetLayout == null || sheetLayout.wsLayout == null) continue;
 
 							WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
-							isPass &= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
+							var md = MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
+
+							mds.Add(md);
+
+							isPass &= md.isPass;
 						}
 						break;
 
@@ -138,7 +153,7 @@ namespace Read_XLSX
 
 						isPass = false;
 
-						foreach (var sheetLayout in dst.sLayouts)
+						foreach (var sheetLayout in dst.sLayouts.Where(sl => sl.wsLayout != null))
 						{
 							if (sheetLayout.wsLayout == null) continue;
 
@@ -146,7 +161,11 @@ namespace Read_XLSX
 							{
 								WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
-								isPass |= MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
+								var md = MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
+
+								isPass |= md.isPass;
+
+								mds.Add(md);
 
 								if (isPass) break;
 							}
@@ -163,6 +182,23 @@ namespace Read_XLSX
 				}
 			}
 			
+			if(type == null)
+			{
+				// Log best no match data.
+				var cmds = mds.Select(m => new { md = m, noColMatchCntMin = m.fldColVersMaps.Min(cv => cv.noMatchCnt * 10000 + cv.noneNullTitleCnt * 100 + cv.disOrder), noCellMatchCntMin = m.fldCellVersMaps.Min(cev => cev.noMatchCnt * 10000 + cev.missingReqFldCnt * 100 + cev.noneNullTitleCnt) });
+				var lmd = cmds.OrderBy(ds => ds.noColMatchCntMin).ThenBy(ds => ds.noCellMatchCntMin).FirstOrDefault();
+				Log.New.Msg($"FAILURE: {file.FullName}: Unable to determine format type of file");
+				lmd.md.fldColVersMaps.FirstOrDefault().colmaps.Where(cp => cp.field == null).OrderBy(cp => cp.column).ToList().ForEach(cpp =>
+				{
+					Log.New.Msg($"\t\tCol: {cpp.column}, Title: {cpp.title}");
+				});
+				Log.New.Msg("\t\t---------------");
+				lmd.md.fldCellVersMaps.FirstOrDefault().fldmaps.Where(fp => fp.field == null).ToList().ForEach(fp =>
+				{
+					Log.New.Msg($"\t\tCell: {fp.cellLoc}, Title: {fp.Title}");
+				});
+			}
+
 			return type;
 		}
 
@@ -212,7 +248,7 @@ namespace Read_XLSX
 		///		are then matched to a list of titles for a given data column. The assumption being that all titles to match
 		///		are unique across all data columns for a given WorkSheetLayout
 		/// </remarks>
-		public bool MatchLayouts(Worksheet ws, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats, FileInfo file)
+		public MatchData MatchLayouts(Worksheet ws, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats, FileInfo file)
 		{
 			// All cells in worksheet.
 			var tcs = ws.Descendants<Cell>();
@@ -224,8 +260,10 @@ namespace Read_XLSX
 							.Select(c => c.OutputOrder)
 							.ToList();
 
+			var md = new MatchData();
+
 			// Obtain column titles for all signature versions.
-			var fldColVersMaps = new List<FieldColumnVersionMap>();
+			md.fldColVersMaps = new List<FieldColumnVersionMap>();
 
 			foreach(var sig in sheetLayout.wsLayout.colLayouts)
 			// for each column layout version scape the worksheet for column title values
@@ -249,11 +287,11 @@ namespace Read_XLSX
 					fldColMaps.Add(new FieldColumnMap { column = colLayout.col, title = title, col_order = col_ord.IndexOf(colLayout.col) });
 				}
 
-				fldColVersMaps.Add(new FieldColumnVersionMap { colLayout = sig, colmaps = fldColMaps });
+				md.fldColVersMaps.Add(new FieldColumnVersionMap { colLayout = sig, colmaps = fldColMaps });
 			}
 					
 			// Match the titles to the DataColumns
-			foreach(var fcvm in fldColVersMaps)
+			foreach(var fcvm in md.fldColVersMaps)
 			{
 				foreach(var cm in fcvm.colmaps)
 				{
@@ -275,12 +313,12 @@ namespace Read_XLSX
 			}
 
 			// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
-			var colLayout_v = fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0).OrderByDescending(sv => sv.disOrder).FirstOrDefault();
+			var colLayout_v = md.fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0).OrderByDescending(sv => sv.disOrder).FirstOrDefault();
 
 			sheetLayout.wsLayout.fieldColMap = colLayout_v;
 
 			// Obtain titles for all field cell layouts
-			var fldCellVersMaps = new List<FieldCellVersionMap>();
+			md.fldCellVersMaps = new List<FieldCellVersionMap>();
 
 			foreach (var fldLayout in sheetLayout.wsLayout.cellLayouts)
 			{
@@ -309,13 +347,13 @@ namespace Read_XLSX
 					}
 				}
 
-				fldCellVersMaps.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
+				md.fldCellVersMaps.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
 			}
 
 			var reqFlds = sheetLayout.wsLayout.fields.Where(sf => sf.fldType == FieldType.cell && sf.isRequired);
 
 			// Match Titles to layout fields
-			foreach (var flvv in fldCellVersMaps)
+			foreach (var flvv in md.fldCellVersMaps)
 			{
 				foreach(var fm in flvv.fldmaps.Where(m => m.Title != null))
 				{
@@ -383,7 +421,7 @@ namespace Read_XLSX
 				flvv.noValCnt = flvv.fldmaps.Where(fm => fm.field != null && fm.field.isRequired && string.IsNullOrWhiteSpace(fm.Value)).Count();
 			}
 
-			var fldLayout_v = fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
+			var fldLayout_v = md.fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
 
 			sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
 
@@ -394,32 +432,12 @@ namespace Read_XLSX
 					sheetLayout.srcWorksheets = new List<Worksheet>();
 
 				sheetLayout.srcWorksheets.Add(ws);
-				return true;
+				md.isPass = true;
 			}
+			else
+				md.isPass = false;
 
-			if (sheetLayout.wsLayout.fieldCellMap == null)
-			{
-				Log.New.Msg("\t\tFailed to map cells to fields");
-				var bstMatch = fldCellVersMaps
-									.OrderBy(fcm => fcm.noMatchCnt)
-									.ThenBy(fcm => fcm.noValCnt)
-									.ThenByDescending(fcm => fcm.noneNullTitleCnt)
-									.ThenBy(fcm => fcm.missingReqFldCnt)
-									.FirstOrDefault();
-				bstMatch.fldmaps.ForEach(cv => Log.New.Msg($"\t\t\tTitle: {cv.Title}, Value: {cv.Value}"));
-			}
-
-			if (sheetLayout.wsLayout.fieldColMap == null)
-			{
-				Log.New.Msg("\t\tFailed to map cells to columns");
-				var bstMatch = fldColVersMaps
-									.OrderBy(ccm => ccm.noMatchCnt)
-									.ThenByDescending(ccm => ccm.noneNullTitleCnt)
-									.FirstOrDefault();
-				bstMatch.colmaps.Where(cm => cm.field == null).ToList().ForEach(cv => Log.New.Msg($"\t\t\tCol: {cv.column}, Title: {cv.title}"));
-			}
-
-			return false; 
+			return md; 
 		}
 
 		private void Init()
@@ -442,7 +460,33 @@ namespace Read_XLSX
 							new CellLocation { TitleRef = "B7", ValueRef = "D7" },
 							new CellLocation { TitleRef = "B3", ValueRef = "B3" }
 						}
-					}
+					},
+					new CellLayoutVersion { Version = 2,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "B6", ValueRef = "C6" },
+							new CellLocation { TitleRef = "B7", ValueRef = "C7" },
+							new CellLocation { TitleRef = "B3", ValueRef = "B3" }
+						}
+					},
+					new CellLayoutVersion { Version = 3,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A5", ValueRef = "D5" },
+							new CellLocation { TitleRef = "A6", ValueRef = "C6" },
+							new CellLocation { TitleRef = "A7", ValueRef = "C7" },
+							new CellLocation { TitleRef = "A3", ValueRef = "A3" }
+						}
+					},
+					new CellLayoutVersion { Version = 3,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A6", ValueRef = "C6" },
+							new CellLocation { TitleRef = "A7", ValueRef = "C7" },
+							new CellLocation { TitleRef = "A8", ValueRef = "C8" },
+							new CellLocation { TitleRef = "A2", ValueRef = "A2" }
+						}
+					},
 				},
 
 				colLayouts = new List<ColumnLayoutVersion>
@@ -469,7 +513,75 @@ namespace Read_XLSX
 							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q9","Q10" } },
 						},
 						FirstRow = 11
-					}
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 2,
+						titleLocations = new List<ColumnTitleLocation> {
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B9" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C9", "C10" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D9", "D10" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E9", "E10" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F9", "F10" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G9" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H9", "H10" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I9", "I10" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J9", "J10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K9", "K10" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L9", "L10" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M8" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N8" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O8" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P9", "P10" } },
+						},
+						FirstRow = 11
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 3,
+						titleLocations = new List<ColumnTitleLocation> {
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B10" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C9", "C10" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D9", "D10" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E9", "E10" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F9", "F10" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G9" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H9", "H10" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I9", "I10" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J9", "J10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K9", "K10" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L9", "L10" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M8" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N8" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O8" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P9", "P10" } },
+						},
+						FirstRow = 11
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 4,
+						titleLocations = new List<ColumnTitleLocation> {
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A10", "A11" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B10" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C10" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D10" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E10" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F10", "F11" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G10" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H10" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I10" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K10" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L10" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M10" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N10" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O10" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P10" } },
+						},
+						FirstRow = 11
+					},
 				},
 
 				fields = new List<Field>
@@ -481,61 +593,99 @@ namespace Read_XLSX
 						titles = new List<string> { "County Name Within Region:" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, isRequired = true,
-						titles = new List<string> { "Recipient's Medicaid ID#:" }
+						titles = new List<string>
+						{
+							"Recipient's Medicaid ID#:",
+							"Recipient's Medicaid ID#",
+						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "LastName", DataFormat = DataFormatType.String,
-						titles = new List<string> { "Recipient LastName:" }
+						titles = new List<string>
+						{
+							"Recipient LastName:",
+							"Recipient Last Name",
+						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "FirstName", DataFormat = DataFormatType.String,
-						titles = new List<string> { "Recipient FirstName:" }
+						titles = new List<string>
+						{
+							"Recipient FirstName:",
+							"Recipient First Name",
+						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 6, Name = "MiddleInitial", DataFormat = DataFormatType.String,
 						titles = new List<string> { "MdlInt." }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "GrievanceDate", DataFormat = DataFormatType.Date,
-						titles = new List<string> { "Date of  Grievance" }
+						titles = new List<string> { "Date of Grievance" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "GrievanceType", DataFormat = DataFormatType.String,
 						titles = new List<string> { "(1 - 11) Type of Grievance" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "AppealDate", DataFormat = DataFormatType.Date,
-						titles = new List<string> { "Date ofAppeal" }
+						titles = new List<string>
+						{
+							"Date ofAppeal",
+							"Date of Appeal",
+						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "AppealAction", DataFormat = DataFormatType.String,
-						titles = new List<string> { "(1 - 6) AppealAction " }
+						titles = new List<string>
+						{
+							"(1 - 6) AppealAction",
+							"(1 - 6) Appeal Action",
+						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "DispositionDate", DataFormat = DataFormatType.Date,
-						titles = new List<string> { "Date ofDisposition" }
+						titles = new List<string> 
+						{
+							"Date ofDisposition",
+							"Date of Disposition",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DispositionNoticeDate", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "Date Disposition Notice Sent" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DispositionType", DataFormat = DataFormatType.String,
-						titles = new List<string> { "(1 - 12) Type ofDisposition" }
+						titles = new List<string>
+						{
+							"(1 - 12) Type ofDisposition",
+							"(1 - 11) Type of Dispostion",
+						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "DispositionStatus", DataFormat = DataFormatType.String,
-						titles = new List<string> { "Disposition Status         R=Resolved  P=Pending" }
+						titles = new List<string> { "Disposition Status R=Resolved P=Pending" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "ExpiditedRequest", DataFormat = DataFormatType.String,
-						titles = new List<string> { "Expedited Request   Y=yes  N=No" }
+						titles = new List<string> { "Expedited Request Y=yes N=No" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "FileType", DataFormat = DataFormatType.String,
-						titles = new List<string> { "File Type:     GM=Griev MMA                    AM=Appeal MMA      GL=Griev LTC   AL=Appeal LTC" }
+						titles = new List<string> { "File Type: GM=Griev MMA AM=Appeal MMA GL=Griev LTC AL=Appeal LTC" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Originator", DataFormat = DataFormatType.String,
-						titles = new List<string> { "Originator   1=Enrollee2 = Provider" }
+						titles = new List<string> { "Originator 1=Enrollee2 = Provider" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 17, Name = "MedicalProviderNbrs", DataFormat = DataFormatType.String, isRequired = true,
-						titles = new List<string> { "Medicaid Provider #:" }
+					new Field { fldType = FieldType.column, OutputOrder = 17, Name = "ProviderNum", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Plan's 9 digit Medicaid Provider #:" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "CalendarYr", DataFormat = DataFormatType.String, isRequired = true,
+					new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "MedicalProviderNbrs", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Medicaid Provider #:",
+							"Medicaid Provider ID#:"
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "CalendarYr", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Calendar Year:" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "PlanName", DataFormat = DataFormatType.String, isRequired = true,
+					new Field { fldType = FieldType.cell, OutputOrder = 20, Name = "PlanName", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Plan Name:" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 20, Name = "Month", DataFormat = DataFormatType.String, isRequired = true,
+					new Field { fldType = FieldType.cell, OutputOrder = 21, Name = "Month", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string> { "January", "February", "March", "April", "May", "June",
 													"July", "August", "September", "October", "November", "December" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 21, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.fileName, OutputOrder = 22, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				},
 			};
 
@@ -958,7 +1108,10 @@ namespace Read_XLSX
 						new SheetLayout { Name = "October", wsLayout = wsLayout_cga },
 						new SheetLayout { Name = "November", wsLayout = wsLayout_cga },
 						new SheetLayout { Name = "December", wsLayout = wsLayout_cga },
-						new SheetLayout { Name = "Summary" }
+						new SheetLayout { Name = "Summary" },
+						new SheetLayout { Name = "October 2014", isOptional = true, wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "November 2014", isOptional = true, wsLayout = wsLayout_cga },
+						new SheetLayout { Name = "December 2014", isOptional = true, wsLayout = wsLayout_cga },
 					}
 				},
 
@@ -973,6 +1126,8 @@ namespace Read_XLSX
 					}
 				}
 			};
+
+			this.types.ForEach(ssl => ssl.sLayouts.ForEach(sl => sl.ssLayout = ssl));
 		}
 	}
 
@@ -996,13 +1151,14 @@ namespace Read_XLSX
 
 		public void Write()
 		{
-			sLayouts.ForEach(s => s.dataSet.Write());
+			sLayouts.Where(s => s.dataSet != null).ToList().ForEach(s => s.dataSet.Write());
 		}
 	}
 
 	class SheetLayout
 	{
 		public string Name { get; set; }
+		public bool isOptional { get; set; }
 		public WorkSheetLayout wsLayout { get; set; }
 
 		public DataSet dataSet { get; set; }
@@ -1011,6 +1167,8 @@ namespace Read_XLSX
 		/// Link to matched worksheet in source xlsx file.
 		/// </summary>
 		public List<Worksheet> srcWorksheets { get; set; }
+
+		public SpreadSheetLayout ssLayout { get; set; }
 	}
 
 	public enum DataFormatType

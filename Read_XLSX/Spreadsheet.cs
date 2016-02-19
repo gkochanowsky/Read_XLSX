@@ -134,6 +134,8 @@ namespace Read_XLSX
 
 		public int RecCount()
 		{
+			if (Rows == null) return 0;
+
 			return Rows.Count();
 		}
 
@@ -159,6 +161,8 @@ namespace Read_XLSX
 
 		public void Write()
 		{
+			if (Rows == null) return;
+
 			string fn = $"{wsLayout.OutputFileName}_{wsLayout.dst.timeStamp.ToString("yyyyMMdd_HHmmss")}.txt";
 
 			string fp = Path.Combine(wsLayout.dst.RootFolder, fn);
@@ -194,7 +198,6 @@ namespace Read_XLSX
 
 					if (ssLayout == null)
 					{
-						Log.New.Msg($"FAILURE: {file.FullName}: Unable to determine format type of file");
 						return 0;
 					}
 
