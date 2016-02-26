@@ -59,6 +59,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Config.cs" />
     <Compile Include="DataDump.cs" />
     <Compile Include="DataSource.cs" />
     <Compile Include="ErrorLog.cs" />

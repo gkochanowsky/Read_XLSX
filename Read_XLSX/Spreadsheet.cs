@@ -60,35 +60,44 @@ namespace Read_XLSX
 			return missing.Count() == 0;
 		}
 
-		public StringBuilder DelimitedRow(StringBuilder sb, List<Field> datacols, string delim)
+		public StringBuilder DelimitedRow(StringBuilder sb, List<Field> datacols, string delim, SpreadSheetLayout ssl)
 		{
-			int lastCol = datacols.Max(d => d.OutputOrder);
-			foreach (var v in datacols.OrderBy(d => d.OutputOrder))
+			bool isFirst = true;
+			datacols.OrderBy(d => d.OutputOrder).ToList().ForEach(d =>
 			{
 				try
 				{
 					string val = null;
 
-					switch (v.fldType)
+					switch (d.fldType)
 					{
 						case FieldType.column:
-							val = Cells.ContainsKey(v.OutputOrder) ? Cells[v.OutputOrder].Value ?? "" : "";
+							val = Cells.ContainsKey(d.OutputOrder) ? Cells[d.OutputOrder].Value ?? "" : "";
 							break;
 						case FieldType.cell:
 						case FieldType.fileName:
-							var df = this.Sheet.wsLayout.fieldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == v.OutputOrder);
+							var df = this.Sheet.wsLayout.fieldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == d.OutputOrder);
 							val = (df != null ? df.Value ?? "" : "");
 							break;
 					}
 
-					// Don't want a delimiter after last column.
-					sb.Append(val + (v.OutputOrder < lastCol ? delim : ""));
+					sb.Append((isFirst ? "" : delim) + val);
+					isFirst = false;
 				}
-				catch(Exception ex)
+				catch (Exception ex)
 				{
 					Log.New.Msg(ex);
 				}
-			}
+			});
+
+			ssl.sLayouts.Where(sl => sl.sheetType == SheetType.CommonData).ToList().ForEach(sl =>
+			{
+				sl.wsLayout.fieldCellMap.fldmaps.OrderBy(fm => fm.field.OutputOrder).ToList().ForEach(fm =>
+				{
+					sb.Append(delim);
+					sb.Append(fm.Value ?? "");
+				});
+			});
 
 			Cells.Clear();
 			return sb;
@@ -139,27 +148,46 @@ namespace Read_XLSX
 			return Rows.Count();
 		}
 
-		public StringBuilder GetDelimitedRows(StringBuilder sb, string fldDelimiter, string rowDelimiter)
+		public StringBuilder GetDelimitedRows(StringBuilder sb, string fldDelimiter, string rowDelimiter, SpreadSheetLayout ssl)
 		{
-			Rows.ToList().ForEach(r => { r.Value.DelimitedRow(sb, wsLayout.fields, fldDelimiter); sb.Append(rowDelimiter); });
+			Rows.ToList().ForEach(r => 
+			{
+				r.Value.DelimitedRow(sb, wsLayout.fields, fldDelimiter, ssl);
+				sb.Append(rowDelimiter);
+			});
+
 			Rows.Clear();
 			return sb;
 		}
 
-		public string GetColumnHeaders(StringBuilder sb, string fldDelimiter, string rowDelimieter)
+		public string GetColumnHeaders(StringBuilder sb, string fldDelimiter, string rowDelimieter, SpreadSheetLayout ssl)
 		{
-			int idx = 0;
+			bool isFirst = true;
 			foreach (var c in wsLayout.fields)
 			{
-				sb.Append(c.Name);
-				if (++idx < wsLayout.fields.Count())
+				if (!isFirst)
 					sb.Append(fldDelimiter);
+
+				sb.Append(c.Name);
+				
+				isFirst = false;
 			}
+
+			var fldtypes = new List<FieldType> { FieldType.cell, FieldType.fileName };
+			ssl.sLayouts.Where(sl => sl.sheetType == SheetType.CommonData).ToList().ForEach(sl =>
+			{
+				sl.wsLayout.fields.OrderBy(f => f.OutputOrder).Where(f => fldtypes.Contains(f.fldType)).ToList().ForEach(f =>
+				{
+					sb.Append(fldDelimiter);
+					sb.Append(f.Name);
+				});
+			});
+
 			sb.Append(rowDelimieter);
 			return sb.ToString();
 		}
 
-		public void Write()
+		public void Write(SpreadSheetLayout ssl)
 		{
 			if (Rows == null) return;
 
@@ -169,9 +197,9 @@ namespace Read_XLSX
 			StringBuilder sb = new StringBuilder();
 
 			if (!File.Exists(fp))
-				this.GetColumnHeaders(sb, wsLayout.fldDelim, wsLayout.recDelim);
+				this.GetColumnHeaders(sb, wsLayout.fldDelim, wsLayout.recDelim, ssl);
 
-			this.GetDelimitedRows(sb, wsLayout.fldDelim, wsLayout.recDelim);
+			this.GetDelimitedRows(sb, wsLayout.fldDelim, wsLayout.recDelim, ssl);
 
 			File.AppendAllText(fp, sb.ToString());
 		}
@@ -206,8 +234,9 @@ namespace Read_XLSX
 
 					cellFormats = wbp.WorkbookStylesPart.Stylesheet.CellFormats;
 					var numberingFormats = wbp.WorkbookStylesPart.Stylesheet.NumberingFormats;
+					List<LayoutType> allowedLT = new List<LayoutType> { LayoutType.Both, LayoutType.ColumnOnly };
 
-					foreach (var sheetLayout in ssLayout.sLayouts.Where(ssl => ssl.wsLayout != null && ssl.srcWorksheets != null && ssl.srcWorksheets.Count() > 0))
+					foreach (var sheetLayout in ssLayout.sLayouts.Where(ssl => ssl.wsLayout != null && ssl.srcWorksheets != null && ssl.srcWorksheets.Count() > 0 && allowedLT.Contains( ssl.wsLayout.layoutType)))
 					// Iterate through the worksheets for this data type
 					{
 						foreach(var sht in sheetLayout.srcWorksheets)
@@ -314,9 +343,11 @@ namespace Read_XLSX
 				switch (colmn.DataFormat)
 				{
 					case DataFormatType.Date:
+						var pdt = c.CellValue.InnerText;
+						pdt = FixDate(pdt);
 						if (cellFormat != null && cellFormat.NumberFormatId != null && c.DataType == null)
 						{
-							var d = DateTime.FromOADate(double.Parse(c.CellValue.InnerText));
+							var d = DateTime.FromOADate(double.Parse(pdt));
 							sval = d.ToString("MM/dd/yy");
 						}
 						else
@@ -355,6 +386,30 @@ namespace Read_XLSX
 			}
 
 			return sval;
+		}
+
+		private static string FixDate(string dt)
+		{
+			var mnth = Config.Data.Months.Where(m => dt.StartsWith(m)).FirstOrDefault();
+			if(mnth == null)
+				return dt;
+
+			var prts = dt.Split('-');
+			if (prts.Count() != 2)
+				return dt;
+
+			int yr;
+			if (!int.TryParse(prts[1], out yr))
+				return dt;
+
+			var mon = Config.Data.Months.IndexOf(mnth);
+
+			if (yr < 1000)
+				yr += 2000;
+
+			dt = $"{mon}/{yr}";
+
+			return dt;
 		}
 	}
 }
