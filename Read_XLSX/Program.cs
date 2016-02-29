@@ -18,18 +18,17 @@ namespace Read_XLSX
 	{
 		static void Main(string[] args)
 		{
-			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_co";
+			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_me";
 
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_cor";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_co";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_ntf";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_erfr\";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_cga\";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test\";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Community Outreach Health FairsPublic Events Notification (0113)";
-
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Enrollee Roster and Facility Residence Report (0129)";
-
-
-			//		string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Missed Services Report (0131)";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Missed Services Report (0131)";
 
 			var startDT = DateTime.Now;
 			Log.SetDir(folder, startDT);

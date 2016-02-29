@@ -25,13 +25,13 @@ namespace Read_XLSX
 		private Log()
 		{
 			timestamp = DateTime.Now;
-			filePath = Path.Combine(Directory.GetCurrentDirectory(), $"Extract_XLXS_Data_Log_{timestamp.ToString("yyyyMMdd_HHmmss")}.txt" );
+			filePath = Path.Combine(Directory.GetCurrentDirectory(), $"Log_Read_XLXS_Data_Extract_{timestamp.ToString("yyyyMMdd_HHmmss")}.txt" );
 		}
 
 		public static void SetDir(string dir, DateTime stamp)
 		{	
 			instance.timestamp = stamp;
-			instance.filePath = Path.Combine(dir, $"Extract_XLXS_Data_Log_{instance.timestamp.ToString("yyyyMMdd_HHmmss")}.txt");
+			instance.filePath = Path.Combine(dir, $"Log_Read_XLXS_Data_Extract_{instance.timestamp.ToString("yyyyMMdd_HHmmss")}.txt");
 		}
 
 		public static Log New {  get { return instance; } }

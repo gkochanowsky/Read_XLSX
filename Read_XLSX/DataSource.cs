@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -33,6 +34,11 @@ namespace Read_XLSX
 		public FieldCellVersionMap fldCellMap { get; set; }
 
 		public int matchCnt { get; set; }
+	}
+
+	class SpreadSheetLayoutMatch
+	{
+
 	}
 
 	class DataSourceTypes
@@ -60,17 +66,17 @@ namespace Read_XLSX
 			var mds = new List<MatchData>();
 
 			// clear working references.
-			types.ForEach(t => t.sLayouts.ForEach(s => 
+			types.ForEach(t => t.sLayouts.ForEach(s =>
 			{
-				if(s.srcWorksheets != null)
+				if (s.srcWorksheets != null)
 				{
 					s.srcWorksheets.Clear();
 					s.srcWorksheets = null;
 				}
-			
-				if(s.dataSet != null)
+
+				if (s.dataSet != null)
 				{
-					if(s.dataSet.Rows != null)
+					if (s.dataSet.Rows != null)
 					{
 						s.dataSet.Rows.ToList().ForEach(r =>
 						{
@@ -84,12 +90,12 @@ namespace Read_XLSX
 					s.dataSet.wsLayout = null;
 					s.dataSet = null;
 				}
-				
+
 				if (s.wsLayout != null)
 				{
-					if(s.wsLayout.fieldColMap != null)
+					if (s.wsLayout.fieldColMap != null)
 					{
-						if(s.wsLayout.fieldColMap.colmaps != null)
+						if (s.wsLayout.fieldColMap.colmaps != null)
 						{
 							s.wsLayout.fieldColMap.colmaps.Clear();
 							s.wsLayout.fieldColMap.colmaps = null;
@@ -97,8 +103,8 @@ namespace Read_XLSX
 
 						s.wsLayout.fieldColMap = null;
 					}
-					
-					if(s.wsLayout.fieldCellMap != null)
+
+					if (s.wsLayout.fieldCellMap != null)
 					{
 						s.wsLayout.fieldCellMap.fldmaps.Clear();
 						s.wsLayout.fieldCellMap.fldmaps = null;
@@ -115,41 +121,43 @@ namespace Read_XLSX
 
 			var shts = wbp.Workbook.Descendants<Sheet>();
 
-			var procTypes = types.Where(p => 
-				p.procType == ProcessType.MatchByClosestWorkSheetLayout || 
-				(shts.Count() >= p.sLayouts.Count(sl => !sl.isOptional) && shts.Count() <= p.sLayouts.Count())
-			);
+			// Add all the match by closest worksheet layouts
+			List<SpreadSheetLayout> procTypes = new List<SpreadSheetLayout>();
 
-			procTypes = procTypes
-				.Where(r => 
-					r.procType == ProcessType.MatchByClosestWorkSheetLayout || 
-					(
-						r.procType == ProcessType.MatchAllDataWorkSheets && 
-						r.sLayouts
-							.Where(sl => !sl.isOptional)
-							.Where(sl => 
-							{
-								int slIdx = r.sLayouts.IndexOf(sl);
-								if (slIdx > shts.Count())
-									return true;
+			foreach(var sl in types.Where(t => t.procType == ProcessType.MatchAllDataWorkSheets))
+			{
+				var matches = new List<SheetLayoutMap>();
 
-								var sht = shts.ElementAt(slIdx);
+				foreach(var s in shts)
+				{
+					var shtName = Regex.Replace(s.Name.Value.Replace('\n', ' '), @"\s+", " ").Trim().ToLower();
 
-								var shtName = System.Text.RegularExpressions.Regex.Replace(sht.Name.Value.Replace('\n', ' '), @"\s+", " ").Trim().ToLower();
+					var slm = new SheetLayoutMap { sht = s };
 
-								var ln = sl.Names.Select(lnm => lnm.Trim().ToLower());
+					foreach (var slo in sl.sLayouts)
+					{
+						var nms = slo.Names.Select(n => Regex.Replace(n.Replace('\n', ' '), @"\s+", " ").Trim().ToLower());
 
-								var hasName = ln.Contains(shtName);
+						if(nms.Contains(shtName))
+						{
+							slm.layout = slo;
+							break;
+						}
+					}
 
-								return !hasName;
-							})
+					matches.Add(slm);
+				}
 
+				var req = sl.sLayouts.Where(slt => !slt.isOptional);
+				var mapped = matches.Where(mp => mp.layout != null).Select(mp => mp.layout);
+				var missed = req.Where(r => !mapped.Contains(r));
 
-							.Where(sl =>  !sl.Names.Contains(shts.ElementAt(r.sLayouts.IndexOf(sl)).Name))
-							.Count() == 0
-					)
-				)
-				.ToList();
+				if (matches.Where(m => m.layout == null).Count() == 0 && missed.Count() == 0)
+					procTypes.Add(sl);
+			}
+
+			if(procTypes.Count() == 0)
+				procTypes.AddRange(types.Where(p => p.procType == ProcessType.MatchByClosestWorkSheetLayout).ToList());
 
 			if (procTypes.Count() == 0) return null;
 
@@ -164,7 +172,7 @@ namespace Read_XLSX
 
 						foreach(var sht in wbp.Workbook.Descendants<Sheet>())
 						{
-							var sheetLayout = dst.sLayouts.FirstOrDefault(sl => sl.Names.Select(n => n.ToLower()).Contains(sht.Name.Value.ToLower()));
+							var sheetLayout = dst.sLayouts.FirstOrDefault(sl => sl.Names.Select(n => n.Trim().ToLower()).Contains(sht.Name.Value.ToLower().Trim()));
 
 							if (sheetLayout == null || sheetLayout.wsLayout == null) continue;
 
@@ -356,9 +364,18 @@ namespace Read_XLSX
 				{
 					try
 					{
+						// TODO: Performance improvement if config strings are pre-processed for whitespace and case.
 						cm.field = sheetLayout.wsLayout.fields
 										.Where(cc => cc.fldType == FieldType.column && cc.titles != null)
-										.FirstOrDefault(cc => cc.titles.Select(t => t.ToLower()).Contains(cm.title));
+										.FirstOrDefault(cc =>
+										{
+											return cc.titles.Select(t =>
+											{
+												var tt = System.Text.RegularExpressions.Regex.Replace(t, @"\s+", " ");
+												return tt.ToLower();
+											})
+											.Contains(cm.title);
+										});
 						cm.field_order = cm.field != null ? field_ord.IndexOf(cm.field.OutputOrder) : -9999;
 					}
 					catch (Exception ex)
@@ -366,6 +383,23 @@ namespace Read_XLSX
 						Log.New.Msg(ex);
 					}
 				}
+
+				// match by neighbor
+				// - Locate flds located by related field
+				var flds_byRelated = sheetLayout.wsLayout.fields.Where(f => f.locType == LocateType.byRelated);
+
+				// - Locate column map for related field parent
+				var related_pairs = flds_byRelated.Select(fr => new { fr = fr, cm = fcvm.colmaps.FirstOrDefault(rcm => rcm.field != null && rcm.field.OutputOrder == fr.RelatedCol) });
+
+				// - Locate column map for related field
+				var rf_cm = related_pairs.Where(rp => rp.cm != null).ToList().Select(rp => new { rp = rp, rc = fcvm.colmaps.FirstOrDefault(fcm => fcm.col_order == rp.cm.col_order + 1) });
+
+				// - Update the field for located column map
+				rf_cm.ToList().ForEach(rfcm =>
+				{
+					rfcm.rc.field = rfcm.rp.fr;
+					rfcm.rc.field_order = rfcm.rc.field.OutputOrder;
+				});
 
 				fcvm.notNullTitleCnt = fcvm.colmaps.Where(cm => !string.IsNullOrWhiteSpace(cm.title)).Count();
 				fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
@@ -503,1184 +537,6 @@ namespace Read_XLSX
 
 			return md;
 		}
-
-		//public MatchData MatchLayouts(Worksheet ws, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats, FileInfo file)
-		//{
-		//	// All cells in worksheet.
-		//	var tcs = ws.Descendants<Cell>();
-
-		//	// Find and map columns to sheet layouts
-		//	var field_ord = sheetLayout.wsLayout.fields
-		//					.Where(c => c.fldType == FieldType.column)
-		//					.OrderBy(c => c.OutputOrder)
-		//					.Select(c => c.OutputOrder)
-		//					.ToList();
-
-		//	var md = new MatchData();
-
-		//	// Obtain column titles for all signature versions.
-		//	md.fldColVersMaps = new List<FieldColumnVersionMap>();
-
-		//	foreach(var sig in sheetLayout.wsLayout.colLayouts)
-		//	// for each column layout version scape the worksheet for column title values
-		//	{
-		//		var fldColMaps = new List<FieldColumnMap>();
-
-		//		var col_ord = sig.titleLocations.OrderBy(so => so.col).Select(so => so.col).ToList();
-
-		//		foreach(var colLayout in sig.titleLocations)
-		//		{
-		//			string title = "";
-		//			foreach(var c in colLayout.cellRefs)
-		//			// A column may have a number of title cells that must be scraped and concatinated to product the title used for matching to data columns.
-		//			{
-		//				var cl = tcs.FirstOrDefault(cll => cll.CellReference.InnerText == c);
-		//				var tlt = Spreadsheet.GetCellValue(cl, stringTable.SharedStringTable, formats, null);
-		//				title += tlt;
-		//			}
-
-		//			title = System.Text.RegularExpressions.Regex.Replace(title.Replace('\n', ' '), @"\s+", " ").Trim().ToLower();
-		//			fldColMaps.Add(new FieldColumnMap { column = colLayout.col, title = title, col_order = col_ord.IndexOf(colLayout.col) });
-		//		}
-
-		//		md.fldColVersMaps.Add(new FieldColumnVersionMap { colLayout = sig, colmaps = fldColMaps });
-		//	}
-
-		//	// Match the titles to the DataColumns
-		//	foreach(var fcvm in md.fldColVersMaps)
-		//	{
-		//		foreach(var cm in fcvm.colmaps)
-		//		{
-		//			try
-		//			{
-		//				cm.field = sheetLayout.wsLayout.fields
-		//								.Where(cc => cc.fldType == FieldType.column && cc.titles != null)
-		//								.FirstOrDefault(cc => cc.titles.Select(t => t.ToLower()).Contains(cm.title));
-		//				cm.field_order = cm.field != null ? field_ord.IndexOf(cm.field.OutputOrder) : -9999;
-		//			}
-		//			catch(Exception ex)
-		//			{
-		//				Log.New.Msg(ex);
-		//			}
-		//		}
-
-		//		fcvm.notNullTitleCnt = fcvm.colmaps.Where(cm => !string.IsNullOrWhiteSpace(cm.title)).Count();
-		//		fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
-		//		fcvm.disOrder = (int)fcvm.colmaps.Where(dm => dm.field != null).Select(dm => Math.Pow((dm.field_order - dm.col_order), 2)).Sum();
-		//		fcvm.colDups = fcvm.colmaps.Where(dm => dm.field != null).GroupBy(cd => cd.field).Where(d => d.Count() > 1).Count();
-		//	}
-
-		//	// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
-		//	var colLayout_v = md.fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0).OrderByDescending(sv => sv.notNullTitleCnt).ThenByDescending(sv => sv.disOrder).FirstOrDefault();
-
-		//	md.fldColMap = sheetLayout.wsLayout.fieldColMap = colLayout_v;
-
-		//	md.matchCnt += md.fldColMap != null ? 1 : 0;
-
-		//	// Obtain titles for all field cell layouts
-		//	md.fldCellVersMaps = new List<FieldCellVersionMap>();
-
-		//	foreach (var fldLayout in sheetLayout.wsLayout.cellLayouts)
-		//	{
-		//		var fldLayoutVals = new List<FieldCellMap>();
-
-		//		foreach(var cellLoc in fldLayout.cellLocations)
-		//		{
-		//			try
-		//			{
-		//				var cl = tcs.FirstOrDefault(cll => cll.CellReference.InnerText == cellLoc.TitleRef);
-		//				var clVal = tcs.FirstOrDefault(clv => clv.CellReference.InnerText == cellLoc.ValueRef);
-
-		//				var title = Spreadsheet.GetCellValue(cl, stringTable.SharedStringTable, formats, null);
-		//				if(title != null) title = System.Text.RegularExpressions.Regex.Replace(title, @"\s+", " ").Trim().ToLower();
-		//				var val = Spreadsheet.GetCellValue(clVal, stringTable.SharedStringTable, formats, null);
-
-		//				fldLayoutVals.Add(new FieldCellMap
-		//				{
-		//					cellLoc = cellLoc,
-		//					Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim().ToLower(),
-		//					Value = string.IsNullOrWhiteSpace(val) ? null : val.Trim()
-		//				});
-		//			}
-		//			catch(Exception ex)
-		//			{
-		//				Log.New.Msg(ex);
-		//			}
-		//		}
-
-		//		md.fldCellVersMaps.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
-		//	}
-
-		//	var reqFlds = sheetLayout.wsLayout.fields.Where(sf => sf.fldType == FieldType.cell && sf.isRequired);
-
-		//	// Match Titles to layout fields
-		//	foreach (var flvv in md.fldCellVersMaps)
-		//	{
-		//		foreach(var fm in flvv.fldmaps.Where(m => m.Title != null))
-		//		{
-		//			foreach(var fld in sheetLayout.wsLayout.fields.Where(f => f.fldType == FieldType.cell))
-		//			{
-		//				try
-		//				{
-		//					if (fm.cellLoc.isCombined)
-		//					{
-		//						var titles = fld.titles.Select(t => t.ToLower()).Where(t => fm.Title.StartsWith(t));
-
-		//						if (titles.Count() > 0)
-		//						{
-		//							fm.field = fld;
-		//							var title = titles.FirstOrDefault();
-		//							if(fm.Value != null && fm.Value.Length > titles.FirstOrDefault().Length)
-		//								fm.Value = fm.Value != null ? fm.Value.Substring(title.Length, fm.Value.Length - title.Length).Trim() : null;
-
-		//							if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
-		//							{
-		//								var val = fm.Value.Replace("(", "").Replace(")", "").Replace(":", "");
-		//								if (val.Contains("Through"))
-		//									val = val.Substring(0, val.IndexOf("Through", StringComparison.OrdinalIgnoreCase));
-		//								DateTime outVal;
-		//								if (DateTime.TryParse(val, out outVal))
-		//								{
-		//									if (fld.DataFormat == DataFormatType.Date)
-		//										fm.Value = outVal.ToShortDateString();
-		//									else
-		//										fm.Value = outVal.ToString();
-		//								}
-		//								else
-		//									fm.Value = null;
-		//							}
-		//							break;
-		//						}
-		//					}
-		//					else
-		//					{
-		//						if (fm.Title != null && fld.titles.Select(t => t.ToLower()).Contains(fm.Title))
-		//						{
-		//							fm.field = fld;
-
-		//							if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
-		//							{
-		//								var cell = tcs.Where(c => c.CellReference == fm.cellLoc.ValueRef).FirstOrDefault();
-		//								fm.Value = Spreadsheet.GetCellValue(cell, stringTable.SharedStringTable, formats, fld);
-		//							}
-
-		//							break;
-		//						}
-		//					}
-		//				}
-		//				catch (Exception ex)
-		//				{
-		//					Log.New.Msg(ex);
-		//				}
-		//			}
-		//		}
-
-		//		var fileFld = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.fileName);
-		//		if ( fileFld != null)
-		//		{
-		//			flvv.fldmaps.Add(new FieldCellMap { field = fileFld, Value = file.FullName });
-		//		}
-
-		//		flvv.noneNullTitleCnt = flvv.fldmaps.Where(fm => !string.IsNullOrWhiteSpace(fm.Title)).Count();
-		//		flvv.noMatchCnt = flvv.fldmaps.Where(fm => fm.field == null).Count();
-		//		flvv.missingReqFldCnt = reqFlds.Where(rf => !flvv.fldmaps.Select(fm => fm.field).Contains(rf)).Count();
-		//		flvv.noValCnt = flvv.fldmaps.Where(fm => fm.field != null && fm.field.isRequired && string.IsNullOrWhiteSpace(fm.Value)).Count();
-		//	}
-
-		//	var fldLayout_v = md.fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
-
-		//	md.fldCellMap = sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
-
-		//	md.matchCnt += md.fldCellMap != null ? 1 : 0;
-
-		//	// TODO: this criterion of selection may need to be improved.
-		//	if(sheetLayout.wsLayout.fieldCellMap != null && sheetLayout.wsLayout.fieldColMap != null)
-		//	{
-		//		if (sheetLayout.srcWorksheets == null)
-		//			sheetLayout.srcWorksheets = new List<Worksheet>();
-
-		//		sheetLayout.srcWorksheets.Add(ws);
-		//		md.isPass = true;
-		//	}
-		//	else
-		//		md.isPass = false;
-
-		//	return md; 
-		//}
-
-		//private void Init()
-		//{
-		//	var wsLayout_cga = new WorkSheetLayout
-		//	{
-		//		Name = "Complaint, Grievance and Appeal Information",
-		//		OutputFileName = "Data_Extract_Complaint_Grievance_Appeal_Info_0127",
-		//		fldDelim = "\t",
-		//		recDelim = System.Environment.NewLine,
-		//		dst = this,
-
-		//		cellLayouts = new List<CellLayoutVersion>
-		//		{
-		//			new CellLayoutVersion { Version = 1,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "B5", ValueRef = "E5" },
-		//					new CellLocation { TitleRef = "B6", ValueRef = "D6" },
-		//					new CellLocation { TitleRef = "B7", ValueRef = "D7" },
-		//					new CellLocation { TitleRef = "B3", ValueRef = "B3" }
-		//				}
-		//			},
-		//			new CellLayoutVersion { Version = 2,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "B6", ValueRef = "C6" },
-		//					new CellLocation { TitleRef = "B7", ValueRef = "C7" },
-		//					new CellLocation { TitleRef = "B3", ValueRef = "B3" }
-		//				}
-		//			},
-		//			new CellLayoutVersion { Version = 3,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A5", ValueRef = "D5" },
-		//					new CellLocation { TitleRef = "A6", ValueRef = "C6" },
-		//					new CellLocation { TitleRef = "A7", ValueRef = "C7" },
-		//					new CellLocation { TitleRef = "A3", ValueRef = "A3" }
-		//				}
-		//			},
-		//			new CellLayoutVersion { Version = 3,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A6", ValueRef = "C6" },
-		//					new CellLocation { TitleRef = "A7", ValueRef = "C7" },
-		//					new CellLocation { TitleRef = "A8", ValueRef = "C8" },
-		//					new CellLocation { TitleRef = "A2", ValueRef = "A2" }
-		//				}
-		//			},
-		//		},
-
-		//		colLayouts = new List<ColumnLayoutVersion>
-		//		{
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 1,
-		//				titleLocations = new List<ColumnTitleLocation> {
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B9" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C10" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D9", "D10" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E9", "E10" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F9", "F10" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G9", "G10" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H9" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I9", "I10" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J9", "J10" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K9", "K10" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L9", "L10" } },
-		//					new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M9", "M10" } },
-		//					new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N8" } },
-		//					new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O8" } },
-		//					new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P8" } },
-		//					new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q9","Q10" } },
-		//				},
-		//				FirstRow = 11
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 2,
-		//				titleLocations = new List<ColumnTitleLocation> {
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B9" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C9", "C10" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D9", "D10" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E9", "E10" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F9", "F10" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G9" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H9", "H10" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I9", "I10" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J9", "J10" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K9", "K10" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L9", "L10" } },
-		//					new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M8" } },
-		//					new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N8" } },
-		//					new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O8" } },
-		//					new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P9", "P10" } },
-		//				},
-		//				FirstRow = 11
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 3,
-		//				titleLocations = new List<ColumnTitleLocation> {
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A9" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B10" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C9", "C10" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D9", "D10" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E9", "E10" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F9", "F10" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G9" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H9", "H10" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I9", "I10" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J9", "J10" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K9", "K10" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L9", "L10" } },
-		//					new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M8" } },
-		//					new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N8" } },
-		//					new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O8" } },
-		//					new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P9", "P10" } },
-		//				},
-		//				FirstRow = 11
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 4,
-		//				titleLocations = new List<ColumnTitleLocation> {
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A10", "A11" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B10" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C10" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D10" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E10" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F10", "F11" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G10" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H10" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I10" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J10" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K10" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L10" } },
-		//					new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M10" } },
-		//					new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N10" } },
-		//					new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O10" } },
-		//					new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P10" } },
-		//				},
-		//				FirstRow = 11
-		//			},
-		//		},
-
-		//		fields = new List<Field>
-		//		{
-		//			new Field { fldType = FieldType.column, OutputOrder = 1, Name = "Region", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Region # (1 - 11)" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 2, Name = "County", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "County Name Within Region:" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, isRequired = true,
-		//				titles = new List<string>
-		//				{
-		//					"Recipient's Medicaid ID#:",
-		//					"Recipient's Medicaid ID#",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 4, Name = "LastName", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Recipient LastName:",
-		//					"Recipient Last Name",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 5, Name = "FirstName", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Recipient FirstName:",
-		//					"Recipient First Name",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 6, Name = "MiddleInitial", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "MdlInt." }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 7, Name = "GrievanceDate", DataFormat = DataFormatType.Date,
-		//				titles = new List<string> { "Date of Grievance" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 8, Name = "GrievanceType", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "(1 - 11) Type of Grievance" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 9, Name = "AppealDate", DataFormat = DataFormatType.Date,
-		//				titles = new List<string>
-		//				{
-		//					"Date ofAppeal",
-		//					"Date of Appeal",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 10, Name = "AppealAction", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"(1 - 6) AppealAction",
-		//					"(1 - 6) Appeal Action",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 11, Name = "DispositionDate", DataFormat = DataFormatType.Date,
-		//				titles = new List<string> 
-		//				{
-		//					"Date ofDisposition",
-		//					"Date of Disposition",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DispositionNoticeDate", DataFormat = DataFormatType.Date,
-		//				titles = new List<string> { "Date Disposition Notice Sent" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DispositionType", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"(1 - 12) Type ofDisposition",
-		//					"(1 - 11) Type of Dispostion",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 13, Name = "DispositionStatus", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Disposition Status R=Resolved P=Pending" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 14, Name = "ExpiditedRequest", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Expedited Request Y=yes N=No" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 15, Name = "FileType", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "File Type: GM=Griev MMA AM=Appeal MMA GL=Griev LTC AL=Appeal LTC" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Originator", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Originator 1=Enrollee2 = Provider" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 17, Name = "ProviderNum", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Plan's 9 digit Medicaid Provider #:" }
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "MedicalProviderNbrs", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Medicaid Provider #:",
-		//					"Medicaid Provider ID#:"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "CalendarYr", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Calendar Year:" }
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 20, Name = "PlanName", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Plan Name:" }
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 21, Name = "Month", DataFormat = DataFormatType.String, isRequired = true,
-		//				titles = new List<string> { "January", "February", "March", "April", "May", "June",
-		//											"July", "August", "September", "October", "November", "December" }
-		//			},
-		//			new Field { fldType = FieldType.fileName, OutputOrder = 22, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
-		//		},
-		//	};
-
-		//	var wsLayout_erfr = new WorkSheetLayout
-		//	{
-		//		Name = "Enrollee Roster and Facility Residence Report",
-		//		OutputFileName = "Data_Extract_Enrollee_Roster_Facility_Residence",
-		//		fldDelim = "\t",
-		//		recDelim = System.Environment.NewLine,
-		//		dst = this,
-
-		//		cellLayouts = new List<CellLayoutVersion>
-		//		{
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 1,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A1", ValueRef = "C1" },
-		//					new CellLocation { TitleRef = "A2", ValueRef = "C2" },
-		//					new CellLocation { TitleRef = "A3", ValueRef = "C3" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 2,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A2", ValueRef = "C2" },
-		//					new CellLocation { TitleRef = "A3", ValueRef = "C3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "C4" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 3,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "B3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "B4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "B5" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 4,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "C3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "C4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "C5" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 5,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "C3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "C4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "D5" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 6,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "D3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "D4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "D5" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 7,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true }
-		//				}
-		//			}
-		//		},
-
-		//		colLayouts = new List<ColumnLayoutVersion>
-		//		{
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 1,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H7" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I7" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J7" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K7" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L7" } },
-		//					new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M7" } },
-		//					new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N7" } },
-		//					new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O7" } },
-		//					new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P7" } },
-		//					new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q7" } },
-		//					new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "R7" } },
-		//					new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "S7" } },
-		//				},
-		//				FirstRow = 8
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 2,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H7" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I7" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J7" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K7" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L7" } },
-		//				},
-		//				FirstRow = 8
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 3,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A6" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B6" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C6" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D6" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E6" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F6" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G6" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H6" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I6" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J6" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K6" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L6" } },
-		//				},
-		//				FirstRow = 7
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 4,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A6" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B6" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D6" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F6" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G6" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I6" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J6" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L6" } },
-		//					new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N6" } },
-		//					new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O6" } },
-		//					new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q6" } },
-		//					new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "S6" } },
-		//					new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "T6" } },
-		//					new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "V6" } },
-		//					new ColumnTitleLocation { col = 24, cellRefs = new List<string> { "X6" } },
-		//					new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "Y6" } },
-		//					new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "AA6" } },
-		//					new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "AB6" } },
-		//					new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "AD6" } },
-		//				},
-		//				FirstRow = 7
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 5,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A5" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B5" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C5" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D5" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E5" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F5" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G5" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H5" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I5" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J5" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K5" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L5" } },
-		//					new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M5" } },
-		//					new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N5" } },
-		//					new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O5" } },
-		//					new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P5" } },
-		//					new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q5" } },
-		//					new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "R5" } },
-		//					new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "S5" } },
-		//				},
-		//				FirstRow = 6
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 6,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H7" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I7" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J7" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K7" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L7" } },
-		//				},
-		//				FirstRow = 8
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 7,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A8" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B8" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C8" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D8" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E8" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F8" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G8" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H8" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I8" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J8" } },
-		//					new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K8" } },
-		//					new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L8" } },
-		//				},
-		//				FirstRow = 9
-		//			},
-		//		},
-
-		//		fields = new List<Field>
-		//		{
-		//			new Field { fldType = FieldType.column, OutputOrder = 1, Name = "LastName", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Enrollee Last Name",
-		//					"Enrolee Last Name",
-		//					"Last Name"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 2, Name = "FirstName", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Enrollee First Name",
-		//					"Enrolee First Name",
-		//					"First Name"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", isRequired = true,
-		//				DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
-		//				titles = new List<string> { "Medicaid ID" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN",
-		//				DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
-		//				titles = new List<string> { "Social Security Number" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 5, Name = "DOB", DataFormat = DataFormatType.Date,
-		//				titles = new List<string>
-		//				{
-		//					"Date of Birth (mm/dd/yyyy)",
-		//					"Date of Birth (MM/DD/YYYY)"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 6, Name = "Addr", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Physical Address",
-		//					"Physical Address (full street address)",
-		//					"Address",
-		//					"Physical Address (Full Street Address)",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 7, Name = "City", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "City" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 8, Name = "Zip", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Zip Code",
-		//					"Zip code"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 9, Name = "County", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "County of Residence" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 10, Name = "Region", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Region" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 11, Name = "FacilityType", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"County of ResidenceResidential Setting Type (Home, ALF, SNF or AFCH)",
-		//					"County of ResidenceType of Facility",
-		//					"Type of Facility",
-		//					"Residential Setting Type (Home, ALF, SNF or AFCH)"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 12, Name = "FacilityName", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Name of Facility",
-		//					"Name of Facility (if applicable)",
-		//					"Name of the Facility (if applicable)",
-		//					"Name of the Facility",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 13, Name = "FacilityLic",
-		//				DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
-		//				titles = new List<string>
-		//				{
-		//					"Facility License Number",
-		//					"Facility License Number (if applicable)",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 14, Name = "Tansition", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Identify if transitioning into a SNF or back into Community (SNF, Community, or N/A)",
-		//					"Identify if transitioning into a SNF or back into Community (snf, Community, or N/A)",
-		//					"Residential Setting Type (Home, ALF, SNF or AFCH",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 15, Name = "TransistionDate", DataFormat = DataFormatType.Date,
-		//				titles = new List<string>
-		//				{
-		//					"Date of transition to SNF or Community (if applicable)",
-		//					"Date of transition to SNF or Community",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Form2515Date", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Date the 2515 form was sent to DCF if transitioning (if applicable)" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 17, Name = "canLocate", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Able to Locate? Y/N" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 18, Name = "canContact", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Able to Contact? Y/N" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 19, Name = "LastContactDate", DataFormat = DataFormatType.Date,
-		//				titles = new List<string>
-		//				{
-		//					"If unable to contact or locate enrolee, date of last contact? (N/A if not applicable)",
-		//					"If unable to contact or locate enrollee, date of last contact? (N/A if not applicable)",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 20, Name = "Comments", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Comments including demonstration of attempts to contact enrolee if applicable",
-		//					"Comments including demonstration of attempts to contact enrollee if applicable"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 21, Name = "MC_PlanName", DataFormat = DataFormatType.String, isRequired = true,
-		//				titles = new List<string>
-		//				{
-		//					"Managed Care Plan Name :",
-		//					"Managed Care Plan Name:",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 22, Name = "MC_PlanID", DataFormat = DataFormatType.String, 
-		//				titles = new List<string>
-		//				{
-		//					"Managed Care Plan ID:",
-		//					"Managed Care Plan ID :"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 23, Name = "Month", DataFormat = DataFormatType.Date, isRequired = true,
-		//				titles = new List<string>
-		//				{
-		//					"Reporting Month (MM/DD/YYYY):",
-		//					"Reporting Month:",
-		//					"Reporting Month"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.fileName, OutputOrder = 24, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
-		//		},
-		//	};
-
-		//	var wsLayout_mcms = new WorkSheetLayout
-		//	{
-		//		Name = "Missed Services Report (0131)",
-		//		OutputFileName = "Data_Extract_Missed_Services",
-		//		fldDelim = "\t",
-		//		recDelim = System.Environment.NewLine,
-		//		dst = this,
-
-		//		cellLayouts = new List<CellLayoutVersion>
-		//		{
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 1,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A2", ValueRef = "A2", isCombined = true },
-		//					new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 2,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 3,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A2", ValueRef = "A2" },
-		//					new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 4,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "B3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "B4" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 5,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "C3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "C4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "C5" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 6,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "B3" },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "B4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "B5" },
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 7,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 8,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "C4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "C5" }
-		//				}
-		//			},
-		//			new CellLayoutVersion
-		//			{
-		//				Version = 9,
-		//				cellLocations = new List<CellLocation>
-		//				{
-		//					new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-		//					new CellLocation { TitleRef = "A4", ValueRef = "B4" },
-		//					new CellLocation { TitleRef = "A5", ValueRef = "B5" },
-		//				}
-		//			},
-		//		},
-
-		//		colLayouts = new List<ColumnLayoutVersion>
-		//		{
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 1,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A5" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B5" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C5" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D5" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E5" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F5" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G5" } },
-		//				},
-		//				FirstRow = 6
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 2,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
-		//				},
-		//				FirstRow = 8
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 3,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A7" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B7" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C7" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D7" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E7" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F7" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G7" } },
-		//					new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H7" } },
-		//					new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I7" } },
-		//					new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J7" } },
-		//				},
-		//				FirstRow = 8
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 4,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A6" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B6" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C6" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D6" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E6" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F6" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G6" } },
-		//				},
-		//				FirstRow = 7
-		//			},
-		//			new ColumnLayoutVersion
-		//			{
-		//				Version = 5,
-		//				titleLocations = new List<ColumnTitleLocation>
-		//				{
-		//					new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A4" } },
-		//					new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B4" } },
-		//					new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C4" } },
-		//					new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D4" } },
-		//					new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E4" } },
-		//					new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F4" } },
-		//					new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G4" } },
-		//				},
-		//				FirstRow = 5
-		//			},
-		//		},
-
-		//		fields = new List<Field>
-		//		{
-		//			new Field { fldType = FieldType.column, OutputOrder = 1, Name = "LastName", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Enrollee Last Name" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 2, Name = "FirstName", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Enrollee First Name" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", isRequired = true, DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Enrollee Medicaid ID",
-		//					"Medicaid ID"
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 4, Name = "ProviderName", DataFormat = DataFormatType.String,
-		//				titles = new List<string> { "Provider Name" }
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 5, Name = "Authorized_Service", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Authorized Service Type",
-		//					"Authorization Service Type",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 6, Name = "Authorized_Units", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Authorized Service Units For The Reported Month",
-		//					"Authorized Services Units for the Reported Month",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 7, Name = "Units_Missed", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Number of Missed Service Units In The Reported Month",
-		//					"Number of Missed Services Units in the Reported Month",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 8, Name = "MissedServiceCode", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Reason for Missed Service (Enter Code)",
-		//					"Reason for Missed Services (Enter Code)",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 9, Name = "MissedServiceDate", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Date of Missed Service (XX/XX/XXXX)",
-		//					"Date of Missed Service or Date Range if Multiple Dates Missed (XX/XX/XXXX)",
-		//					"Date of Missed Services or Date Range if Multiple Dates Missed (XX/XX/XXXXX)",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.column, OutputOrder = 10, Name = "Explanation", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Explanation and Resolution of Missed Services",
-		//					"Resolution of Missed Service /Comments",
-		//					"Resolution of Missed Services / Comments",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 11, Name = "MC_PlanName", DataFormat = DataFormatType.String, isRequired = true,
-		//				titles = new List<string>
-		//				{
-		//					"Managed Care Plan Name:",
-		//					"Managed Care Plan Name :",
-		//					"Coventry Health Plan Inc",
-		//					"Humana Health Plan, Inc",
-		//					"Sunshine State Health Plan",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 12, Name = "MC_PlanID", DataFormat = DataFormatType.String,
-		//				titles = new List<string>
-		//				{
-		//					"Managed Care Plan ID:",
-		//					"Managed Care Plan ID :",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.cell, OutputOrder = 13, Name = "Month", DataFormat = DataFormatType.Date, isRequired = true,
-		//				titles = new List<string>
-		//				{
-		//					"Reporting Month (mm/yyyy):",
-		//					"Reporting Month (MM/DD/YYYY):",
-		//					"Reporting Month:",
-		//					"Reporting Month",
-		//				}
-		//			},
-		//			new Field { fldType = FieldType.fileName, OutputOrder = 14, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
-		//		},
-		//	};
-
-		//	// Create list of data source types.
-		//	types = new List<SpreadSheetLayout>
-		//	{
-		//		new SpreadSheetLayout
-		//		{
-		//			Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
-		//			procType = ProcessType.MatchAllDataWorkSheets,
-		//			types = this,
-		//			sLayouts = new List<SheetLayout>
-		//			{
-		//				new SheetLayout { Name = "Instructions" },
-		//				new SheetLayout { Name = "Codes" },
-		//				new SheetLayout { Name = "January", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "February", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "March", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "April", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "May", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "June", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "July", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "August", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "September", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "October", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "November", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "December", wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "Summary" },
-		//				new SheetLayout { Name = "October 2014", isOptional = true, wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "November 2014", isOptional = true, wsLayout = wsLayout_cga },
-		//				new SheetLayout { Name = "December 2014", isOptional = true, wsLayout = wsLayout_cga },
-		//			}
-		//		},
-
-		//		new SpreadSheetLayout
-		//		{
-		//			Name = "Enrollee Roster and Facility Residence Report (0129)",
-		//			procType = ProcessType.MatchByClosestWorkSheetLayout,
-		//			types = this,
-		//			sLayouts = new List<SheetLayout>
-		//			{
-		//				new SheetLayout { wsLayout = wsLayout_erfr }
-		//			}
-		//		},
-
-		//		new SpreadSheetLayout
-		//		{
-		//			Name = "Managed Care Missed Services Report",
-		//			procType = ProcessType.MatchByClosestWorkSheetLayout,
-		//			types = this,
-		//			sLayouts = new List<SheetLayout>
-		//			{
-		//				new SheetLayout { wsLayout = wsLayout_mcms }
-		//			}
-		//		},
-
-		//	};
-
-		//	this.types.ForEach(ssl => ssl.sLayouts.ForEach(sl => sl.ssLayout = ssl));
-		//}
 	}
 
 	#region Supporting Definitions
@@ -1812,13 +668,22 @@ namespace Read_XLSX
 		fileName,
 	}
 
+	public enum LocateType
+	{
+		byTitle,
+		byRelated
+	}
+
 	class Field
 	{
 		public FieldType fldType { get; set; }
+		public LocateType locType { get; set; }
 
 		public string Name { get; set; }
 
 		public int OutputOrder { get; set; }
+
+		public int RelatedCol { get; set; }
 
 		public bool isRequired { get; set; }
 
@@ -1890,6 +755,12 @@ namespace Read_XLSX
 		public CellLocation cellLoc { get; set; }
 
 		public Field field { get; set; }
+	}
+
+	class SheetLayoutMap
+	{
+		public Sheet sht { get; set; }
+		public SheetLayout layout { get; set; }
 	}
 
 	#endregion

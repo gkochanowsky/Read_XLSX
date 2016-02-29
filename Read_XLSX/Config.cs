@@ -1530,6 +1530,399 @@ namespace Read_XLSX
 				}
 			};
 
+			var wsLayout_cor_jurat = new WorkSheetLayout
+			{
+				Name = "Community Outreach Representative Registration (0116) Jurat",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				layoutType = LayoutType.CellOnly,
+				dst = dst,
+
+				cellLayouts = new List<CellLayoutVersion>
+				{
+					new CellLayoutVersion
+					{
+						Version = 1,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A5", ValueRef = "A6" },
+							new CellLocation { TitleRef = "A23", ValueRef = "A23", isCombined = true },
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 2,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A5", ValueRef = "A6" },
+							new CellLocation { TitleRef = "A23", ValueRef = "A24" },
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 3,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A4", ValueRef = "A5" },
+							new CellLocation { TitleRef = "A22", ValueRef = "A23" },
+						}
+					},
+				},
+
+				fields = new List<Field>
+				{
+					new Field { fldType = FieldType.cell, OutputOrder = 1, Name = "MC_PlanName", isRequired = true, DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Managed Care Plan Name",
+							"Plan Name",
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 2, Name = "Month", DataFormat = DataFormatType.String,
+						titles = new List<string> { "For the quarter ending:" }
+					},
+					new Field { fldType = FieldType.fileName, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+				}
+			};
+
+			var wsLayout_cor_activity = new WorkSheetLayout
+			{
+				Name = "Community Outreach Representative Registration (0116) Activity",
+				OutputFileName = "Data_Extract_Community_Outreach_Representative",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				layoutType = LayoutType.ColumnOnly,
+				dst = dst,
+
+				colLayouts = new List<ColumnLayoutVersion>
+				{
+					new ColumnLayoutVersion
+					{
+						Version = 1,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A4" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B4" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C4" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D4" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E4" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F4" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G4" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H4" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I4" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J4" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K4" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L4" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M4" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N4" } },
+						},
+						FirstRow = 5
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 2,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A3" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B3" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C3" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D3" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E3" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F3" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G3" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H3" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I3" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J3" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K3" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L3" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M3" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N3" } },
+						},
+						FirstRow = 4
+					},
+				},
+
+				fields = new List<Field>
+				{
+					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "Action", DataFormat = DataFormatType.String,
+						titles = new List<string> { "ACTION R = Lisc/Certificate Renewed C = Info Updated N = New Representative T = Terminated" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "Action_Date", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "DATE OF ACTION TAKEN" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "Last_Name", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "LAST NAME" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "First_Name", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "FIRST NAME" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "Addr", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "ADDRESS" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 6, Name = "City", DataFormat = DataFormatType.String,
+						titles = new List<string> { "CITY" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "Licence_Cert_Num", DataFormat = DataFormatType.String,
+						titles = new List<string> { "LIC / CERT NUMBER (use NA if not applicable)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "Licence_Cert_Issue_Date", DataFormat = DataFormatType.String,
+						titles = new List<string> { "LIC / CERT ISSUE DATE (use NA if not applicable)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "Licence_Cert_End_Date", DataFormat = DataFormatType.String,
+						titles = new List<string> { "LIC / CERT END DATE (use NA if not applicable)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "Licence_Cert_Issuer", DataFormat = DataFormatType.String,
+						titles = new List<string> { "LIC / CERT ISSUED BY: (DOH, DPR, DFS, ect.,use NA if not applicable)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "License_Cert_Type", DataFormat = DataFormatType.String,
+						titles = new List<string> { "LIC /CERT TYPE OR DESIGNATION" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "Phone_Office", DataFormat = DataFormatType.String,
+						titles = new List<string> { "COMM OUTR REP OFFICE TELEPHONE" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "Phone_Cell", DataFormat = DataFormatType.String,
+						titles = new List<string> { "COMM OUTR REP CELLULAR TELEPHONE" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "Prev_Employer", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"PREVIOUS EMPLOYER",
+							"PREVIOUS HEALTH PLAN EMPLOYER",
+						}
+					},
+				}
+			};
+
+			var wsLayout_me_info = new WorkSheetLayout
+			{
+				Name = "Marketing/Public/Educational Events Report (0159) Info",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				layoutType = LayoutType.CellOnly,
+				dst = dst,
+
+				cellLayouts = new List<CellLayoutVersion>
+				{
+					new CellLayoutVersion
+					{
+						Version = 1,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "B3", ValueRef = "C3" },
+							new CellLocation { TitleRef = "B9", ValueRef = "C9" },
+							new CellLocation { TitleRef = "B11", ValueRef = "C11" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 2,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "B3", ValueRef = "C3" },
+							new CellLocation { TitleRef = "C8", ValueRef = "C9" },
+							new CellLocation { TitleRef = "B11", ValueRef = "C11" }
+						}
+					},
+				},
+
+				fields = new List<Field>
+				{
+					new Field { fldType = FieldType.cell, OutputOrder = 1, Name = "MC_PlanName", isRequired = true, DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Managed Care Plan Name:",
+							"Plan Name:"
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 2, Name = "Month", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Reporting Month:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 3, Name = "Yr", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Calendar Year:" }
+					},
+					new Field { fldType = FieldType.fileName, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+				}
+			};
+
+			var wsLayout_me_events = new WorkSheetLayout
+			{
+				Name = "Marketing/Public/Educational Events Report(0159) Events",
+				OutputFileName = "Data_Extract_Marketing_Event",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				layoutType = LayoutType.ColumnOnly,
+				dst = dst,
+
+				colLayouts = new List<ColumnLayoutVersion>
+				{
+					new ColumnLayoutVersion
+					{
+						Version = 1,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A6" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B6" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C6" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D6" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E6" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F6" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G6" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H6" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I6" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J6" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K6" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L6" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M6" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N6" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O6" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P6" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q6" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "R6" } },
+						},
+						FirstRow = 7
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 2,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A5" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B5" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C5" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D5" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E5" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F5" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G5" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H5" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I5" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J5" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K5" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L5" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "M5" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "N5" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "O4" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "P4" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "Q5" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "R5" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "S5" } }
+						},
+						FirstRow = 6
+					},
+				},
+
+				fields = new List<Field>
+				{
+					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "Action", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"ACTION TAKEN N=New; A=Amended; or C=Canceled",
+							"ACTION TAKEN (N=New, A=Amended)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "Event_Type", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"EVENT TYPE M=Marketing; P=Public; or E=Educational (Please see Tab 1's Definitions)",
+							"EVENT TYPE:",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "Event_Name", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string>
+						{
+							"EVENT NAME (Please see Tab 1's Instructions)",
+							"EVENT NAME"
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "Plan_Type", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"PLAN TYPE (MMA, LTC)",
+							"PLAN TYPE (MMA, LTC, COMP)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "Event_Formality", DataFormat = DataFormatType.String,
+						titles = new List<string> { "TYPE OF MARKETING EVENT (if applicable) FE=Formal Event or IE=Informal Event (Please see Tab 1's Definitions)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 6, Name = "Start_Date", DataFormat = DataFormatType.Date, isRequired = true,
+						titles = new List<string> { "START DATE" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "End_Date", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "END DATE" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "Start_Time", DataFormat = DataFormatType.String,
+						titles = new List<string> { "START TIME" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "End_Time", DataFormat = DataFormatType.String,
+						titles = new List<string> { "END TIME" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "Sponsor", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"EVENT SPONSOR NAME",
+							"EVENT SPONSOR",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "Event_Addr", DataFormat = DataFormatType.String,
+						titles = new List<string> { "PHYSICAL LOCATION OF EVENT (Street Address)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "Event_City_County", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"EVENT CITY AND COUNTY",
+							"CITY AND COUNTY",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "Event_Region", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"EVENT REGION",
+							"REGION",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "Contact", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"PLAN'S LEAD CONTACT NAME AND PHONE NUMBER:",
+							"EVENT CONTACT NAME AND PHONE NUMBER:",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "Contact_Phone", DataFormat = DataFormatType.String,
+						locType = LocateType.byRelated, RelatedCol = 14
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Notice_Submitted", DataFormat = DataFormatType.String,
+						titles = new List<string> { "INVITATION NOTICE SUBMITTED: Yes/No" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 17, Name = "Event_Representative", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"NAME(S) OF PLAN'S PARTICIPATING MARKETING AGENT(S) OR EVENT REPRESENATIVE(S)",
+							"NAMES OF PARTICIPATING PLAN MARKETING REPRESENTATIVES/AGENTS",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 18, Name = "Representative_DFS_LicNum", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"DFS LICENSE NUMBER(S) OF PARTICIPATING PLAN MARKETING AGENT(S) (if applicable)",
+							"PARTICIPATING MARKETING REPRESENTATIVE/AGENT DFS LICENSE NUMBER",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 19, Name = "Nominal_Items", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"FILE NAME(S) OF AGENCY APPROVED NOMINAL VALUE ITEM(S) < $15.00 TO BE DISTRIBUTED (if applicable)",
+							"PROMO ITEMS < $15.00 RETAIL  Yes/No",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 20, Name = "Handout_Provided", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"FILE NAME(S) OF AGENCY APPROVED EVENT WRITTEN MATERIAL(S) TO BE DISTRIBUTED (if applicable)",
+							"HANDOUT MATERIAL PROVIDED Yes/No",
+						}
+					}
+				}
+			};
+
 			// Create list of data source types.
 			dst.types = new List<SpreadSheetLayout>
 			{
@@ -1617,7 +2010,7 @@ namespace Read_XLSX
 							Names = new List<string>
 							{
 								"Sheet2",
-								"Sheet3"
+								"Sheet3",
 							},
 							isOptional = true
 						},
@@ -1654,7 +2047,57 @@ namespace Read_XLSX
 						},
 						new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event },
 					}
-				}
+				},
+
+				new SpreadSheetLayout
+				{
+					Name = "Community Outreach Representative",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Instructions" }, isOptional = true },
+						new SheetLayout { Names = new List<string> { "Jurat" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_cor_jurat },
+						new SheetLayout { Names = new List<string> { "Representative Activity" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cor_activity },
+						new SheetLayout { Names = new List<string> {  "Sheet1", "Sheet3" }, isOptional = true }
+					}
+				},
+
+				new SpreadSheetLayout
+				{
+					Name = "Marketing/Public/Educational Events",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Instructions-Definitions" }, isOptional = true },
+						new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
+						new SheetLayout { Names = new List<string> { "Monthly Events Report" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events }
+					}
+				},
+
+				new SpreadSheetLayout
+				{
+					Name = "Marketing/Public/Educational Events and Community Outreach",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
+						new SheetLayout { Names = new List<string> { "Marketing Events" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events },
+						new SheetLayout
+						{
+							Names = new List<string>
+							{
+								"Community Outreach Events",
+								"Education Comm Outreach Events",
+							},
+							sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event
+						},
+						new SheetLayout { Names = new List<string> { "Sheet1" }, isOptional = true }
+					}
+				},
+
 			};
 
 			dst.types.ForEach(ssl => ssl.sLayouts.ForEach(sl => sl.ssLayout = ssl));
