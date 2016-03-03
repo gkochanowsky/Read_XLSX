@@ -56,15 +56,8 @@ namespace Read_XLSX
 			Config.Load(this);
 		}
 
-		/// <remarks>
-		/// Two ways to determin type based on value matchWorkSheetNames
-		/// - when true then worksheet names must match DataSource type in order to be a match.
-		/// - when false then if any worksheets match data source layout then is a match
-		/// </remarks>
-		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd, FileInfo file)
+		private void Clear()
 		{
-			var mds = new List<MatchData>();
-
 			// clear working references.
 			types.ForEach(t => t.sLayouts.ForEach(s =>
 			{
@@ -112,6 +105,18 @@ namespace Read_XLSX
 					}
 				}
 			}));
+		}
+
+		/// <remarks>
+		/// Two ways to determin type based on value matchWorkSheetNames
+		/// - when true then worksheet names must match DataSource type in order to be a match.
+		/// - when false then if any worksheets match data source layout then is a match
+		/// </remarks>
+		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd, FileInfo file)
+		{
+			Clear();
+
+			var mds = new List<MatchData>();
 
 			SpreadSheetLayout type = null;
 
@@ -332,7 +337,7 @@ namespace Read_XLSX
 			// Obtain column titles for all signature versions.
 			md.fldColVersMaps = new List<FieldColumnVersionMap>();
 
-			foreach (var sig in sheetLayout.wsLayout.colLayouts)
+			foreach (var sig in sheetLayout.wsLayout.colLayouts.OrderByDescending(scl => scl.titleLocations.Count()))
 			// for each column layout version scape the worksheet for column title values
 			{
 				var fldColMaps = new List<FieldColumnMap>();
@@ -369,13 +374,35 @@ namespace Read_XLSX
 										.Where(cc => cc.fldType == FieldType.column && cc.titles != null)
 										.FirstOrDefault(cc =>
 										{
-											return cc.titles.Select(t =>
+											var lct = cc.titles.Select(t =>
 											{
 												var tt = System.Text.RegularExpressions.Regex.Replace(t, @"\s+", " ");
 												return tt.ToLower();
-											})
-											.Contains(cm.title);
+											});
+
+											var hasTitle = lct.Contains(cm.title);
+
+											return hasTitle;
 										});
+
+						// if required field and should be verified then check that first row has value
+						if(sheetLayout.wsLayout.verifyFirstRowData && cm.field != null && cm.field.isRequired )
+						{
+							int col = fcvm.colLayout.colLayoutType == ColLayoutType.Row_Col ? cm.column : fcvm.colLayout.FirstRow;
+							int row = fcvm.colLayout.colLayoutType == ColLayoutType.Row_Col ? fcvm.colLayout.FirstRow : cm.column;
+
+							var valRef = Spreadsheet.GetCellRef(row, col);
+							var clVal = tcs.FirstOrDefault(clv => clv.CellReference.InnerText == valRef);
+
+							var val = Spreadsheet.GetCellValue(clVal, stringTable.SharedStringTable, formats, cm.field);
+
+							if (!string.IsNullOrWhiteSpace(val))
+							{
+								cm.hasValue = true;
+								cm.firstRowVal = val;
+							}
+						}
+
 						cm.field_order = cm.field != null ? field_ord.IndexOf(cm.field.OutputOrder) : -9999;
 					}
 					catch (Exception ex)
@@ -403,12 +430,14 @@ namespace Read_XLSX
 
 				fcvm.notNullTitleCnt = fcvm.colmaps.Where(cm => !string.IsNullOrWhiteSpace(cm.title)).Count();
 				fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
+				fcvm.ReqNoValCnt = fcvm.colmaps.Where(cm => cm.field != null && cm.field.isRequired && !cm.hasValue).Count();
 				fcvm.disOrder = (int)fcvm.colmaps.Where(dm => dm.field != null).Select(dm => Math.Pow((dm.field_order - dm.col_order), 2)).Sum();
-				fcvm.colDups = fcvm.colmaps.Where(dm => dm.field != null).GroupBy(cd => cd.field).Where(d => d.Count() > 1).Count();
+				var dupCols = fcvm.colmaps.Where(dm => dm.field != null).GroupBy(cd => cd.field).Where(d => d.Count() > 1);
+				fcvm.colDups = dupCols.Count();
 			}
 
 			// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
-			var colLayout_v = md.fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0).OrderByDescending(sv => sv.notNullTitleCnt).ThenByDescending(sv => sv.disOrder).FirstOrDefault();
+			var colLayout_v = md.fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0 && sv.ReqNoValCnt == 0).OrderByDescending(sv => sv.notNullTitleCnt).ThenByDescending(sv => sv.disOrder).FirstOrDefault();
 
 			md.fldColMap = sheetLayout.wsLayout.fieldColMap = colLayout_v;
 
@@ -629,6 +658,9 @@ namespace Read_XLSX
 		/// Versions of sheet column title cells to match for data column cell extraction
 		/// </summary>
 		public List<ColumnLayoutVersion> colLayouts { get; set; }
+
+		public bool verifyFirstRowData { get; set; }
+
 		/// <summary>
 		/// List of data columns present on worksheet
 		/// </summary>
@@ -639,12 +671,17 @@ namespace Read_XLSX
 		public FieldColumnVersionMap fieldColMap { get; set; }
 	}
 
-	/// <summary>
-	/// 
-	/// </summary>
+	public enum ColLayoutType
+	{
+		Row_Col,
+		Col_Row
+	}
+
 	class ColumnLayoutVersion
 	{
 		public int Version { get; set; }
+
+		public ColLayoutType colLayoutType { get; set; }
 
 		public List<ColumnTitleLocation> titleLocations { get; set; }
 
@@ -689,7 +726,7 @@ namespace Read_XLSX
 
 		public DataFormatType DataFormat { get; set; }
 
-		public List<string> postProcRegex { get; set; }
+		public List<Tuple<string, string>> postProcRegex { get; set; }
 
 		public List<string> titles { get; set; }
 	}
@@ -724,6 +761,10 @@ namespace Read_XLSX
 		public int col_order { get; set; }
 
 		public int field_order { get; set; }
+
+		public bool hasValue { get; set; }
+
+		public string firstRowVal { get; set; }
 	}
 
 	class FieldColumnVersionMap
@@ -734,6 +775,7 @@ namespace Read_XLSX
 		public int disOrder { get; set; }
 		public int colDups { get; set; }
 		public int notNullTitleCnt { get; set; }
+		public int ReqNoValCnt { get; set; }
 	}
 
 	class FieldCellVersionMap

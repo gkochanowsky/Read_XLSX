@@ -534,11 +534,11 @@ namespace Read_XLSX
 						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", isRequired = true,
-						DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
+						DataFormat = DataFormatType.String, postProcRegex = new List<Tuple<string, string>> { new Tuple<string, string>(@"[^0-9]", "") },
 						titles = new List<string> { "Medicaid ID" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN",
-						DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
+						DataFormat = DataFormatType.String, postProcRegex = new List<Tuple<string, string>> { new Tuple<string, string>(@"[^0-9]", "") },
 						titles = new List<string> { "Social Security Number" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "DOB", DataFormat = DataFormatType.Date,
@@ -592,7 +592,7 @@ namespace Read_XLSX
 						}
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "FacilityLic",
-						DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
+						DataFormat = DataFormatType.String, postProcRegex = new List<Tuple<string, string>> { new Tuple<string, string>(@"[^0-9]", "") },
 						titles = new List<string>
 						{
 							"Facility License Number",
@@ -1035,7 +1035,8 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", isRequired = true, DataFormat = DataFormatType.String,
 						titles = new List<string> { "Medicaid ID" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN", DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN", DataFormat = DataFormatType.String,
+						postProcRegex = new List<Tuple<string, string>> { new Tuple<string, string>(@"[^0-9]", "") },
 						titles = new List<string> { "Social Security Number" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "DOB", DataFormat = DataFormatType.Date,
@@ -1053,7 +1054,8 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "FacilityName", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Name of Nursing Facility" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "ProviderNumber", DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "ProviderNumber", DataFormat = DataFormatType.String,
+						postProcRegex = new List<Tuple<string,string>> { new Tuple<string, string>(@"[^0-9]", "") },
 						titles = new List<string> { "Nursing Facility Medicaid Provider Number" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "Transition_Date", DataFormat = DataFormatType.Date,
@@ -1204,7 +1206,8 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", isRequired = true, DataFormat = DataFormatType.String,
 						titles = new List<string> { "Medicaid ID" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN", DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "SSN", DataFormat = DataFormatType.String,
+						postProcRegex = new List<Tuple<string,string>> { new Tuple<string, string>(@"[^0-9]", "") },
 						titles = new List<string> { "Social Security Number" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "DOB", DataFormat = DataFormatType.Date,
@@ -1222,7 +1225,8 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "County_After", DataFormat = DataFormatType.String,
 						titles = new List<string> { "County of Residence Post-Nursing Facility Placement" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "ProviderNumber", DataFormat = DataFormatType.String, postProcRegex = new List<string> { @"[^0-9]", "" },
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "ProviderNumber", DataFormat = DataFormatType.String,
+						postProcRegex = new List<Tuple<string,string>> { new Tuple<string, string>(@"[^0-9]", "") },
 						titles = new List<string> { "Nursing Facility Medicaid Provider Number" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "Admit_Date", DataFormat = DataFormatType.Date,
@@ -1923,6 +1927,1015 @@ namespace Read_XLSX
 				}
 			};
 
+			var wsLayout_mccma = new WorkSheetLayout
+			{
+				Name = "Case Management File Audit Report (0102)",
+				OutputFileName = "Data_Extract_Case_Management_Audit",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				layoutType = LayoutType.Both,
+				dst = dst,
+
+				cellLayouts = new List<CellLayoutVersion>
+				{
+					new CellLayoutVersion
+					{
+						Version = 1,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A2", ValueRef = "A2", isCombined = true },
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true }
+						}
+					},
+				},
+
+				verifyFirstRowData = true,
+
+				colLayouts = new List<ColumnLayoutVersion>
+				{
+					new ColumnLayoutVersion
+					{
+						Version = 1,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "A6", "K6" } },
+
+							// 8 -> 22, 25 -> 37, 40 -> 55
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+
+							new ColumnTitleLocation { col = 40, cellRefs = new List<string> { "A40" } },
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+							new ColumnTitleLocation { col = 55, cellRefs = new List<string> { "A55" } },
+							new ColumnTitleLocation { col = 56, cellRefs = new List<string> { "A56" } },
+						},
+						FirstRow = 11
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 2,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "A6", "K6" } },
+
+							// 8 -> 22, 25 -> 37, 40 -> 54
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+
+							new ColumnTitleLocation { col = 40, cellRefs = new List<string> { "A40" } },
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+						},
+						FirstRow = 11
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 3,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "A6", "K6" } },
+
+							// 8 -> 23, 26 -> 38, 41 -> 55
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+							new ColumnTitleLocation { col = 23, cellRefs = new List<string> { "A23" } },
+
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+							new ColumnTitleLocation { col = 38, cellRefs = new List<string> { "A38" } },
+
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+							new ColumnTitleLocation { col = 55, cellRefs = new List<string> { "A55" } },
+						},
+						FirstRow = 11
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 4,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "A7" } },
+
+							// 9 -> 24, 27 -> 39, 42 -> 56
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+							new ColumnTitleLocation { col = 23, cellRefs = new List<string> { "A23" } },
+							new ColumnTitleLocation { col = 24, cellRefs = new List<string> { "A24" } },
+
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+							new ColumnTitleLocation { col = 38, cellRefs = new List<string> { "A38" } },
+							new ColumnTitleLocation { col = 39, cellRefs = new List<string> { "A39" } },
+
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+							new ColumnTitleLocation { col = 55, cellRefs = new List<string> { "A55" } },
+							new ColumnTitleLocation { col = 56, cellRefs = new List<string> { "A56" } }
+						},
+						FirstRow = 2
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 5,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "A6", "L7" } },
+
+							// 8 -> 25, 27 -> 39, 42 -> 52, 54 -> 56
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+							new ColumnTitleLocation { col = 23, cellRefs = new List<string> { "A23" } },
+							new ColumnTitleLocation { col = 24, cellRefs = new List<string> { "A24" } },
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+							new ColumnTitleLocation { col = 38, cellRefs = new List<string> { "A38" } },
+							new ColumnTitleLocation { col = 39, cellRefs = new List<string> { "A39" } },
+
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+							new ColumnTitleLocation { col = 55, cellRefs = new List<string> { "A55" } },
+							new ColumnTitleLocation { col = 56, cellRefs = new List<string> { "A56" } },
+						},
+						FirstRow = 13
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 6,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "A6", "K5" } },
+
+							// 8 -> 22, 25 -> 37, 40 -> 54 same as v2
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+
+							new ColumnTitleLocation { col = 40, cellRefs = new List<string> { "A40" } },
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+						},
+						FirstRow = 12
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 7,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "A7", "B5" } },
+
+							// 9 -> 23, 26 -> 38, 41 -> 55
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+							new ColumnTitleLocation { col = 23, cellRefs = new List<string> { "A23" } },
+
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+							new ColumnTitleLocation { col = 38, cellRefs = new List<string> { "A38" } },
+
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+							new ColumnTitleLocation { col = 55, cellRefs = new List<string> { "A55" } },
+						},
+						FirstRow = 2
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 8,
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "A6", "L5" } },
+
+							// 8 -> 22, 25 -> 37, 40 -> 54 *
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+
+							new ColumnTitleLocation { col = 40, cellRefs = new List<string> { "A40" } },
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+						},
+						FirstRow = 12
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 9, // copied from 4
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "A6" } },  // 7 -> 6
+
+							// 8 -> 23, 26 -> 38, 41 -> 55
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },  // added
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+							new ColumnTitleLocation { col = 23, cellRefs = new List<string> { "A23" } },
+
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },	// 24 -> 26
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+							new ColumnTitleLocation { col = 38, cellRefs = new List<string> { "A38" } },
+
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },	// 39 -> 41 
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+							new ColumnTitleLocation { col = 55, cellRefs = new List<string> { "A55" } },
+//							new ColumnTitleLocation { col = 56, cellRefs = new List<string> { "A56" } }		// removed row
+						},
+						FirstRow = 2
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 10,	// copied from v2
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "A6", "C6" } },	// 7 -> 6, K6 -> C6
+
+							// 8 -> 22, 25 -> 37, 40 -> 54
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+
+							new ColumnTitleLocation { col = 40, cellRefs = new List<string> { "A40" } },
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+						},
+						FirstRow = 4	// 11 -> 4
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 11,	// copied from v2
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "A6", "B6" } },	// col 7 -> 6, K6 -> B6
+
+							// 8 -> 22, 25 -> 37, 40 -> 54
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+
+							new ColumnTitleLocation { col = 40, cellRefs = new List<string> { "A40" } },
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+						},
+						FirstRow = 3	// 11 -> 3
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 12,	// copied from v2
+						colLayoutType = ColLayoutType.Col_Row,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "A6", "H5" } },	// col 7 -> 6, K6 -> H5
+
+							// 8 -> 22, 25 -> 37, 40 -> 54
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "A8" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "A9" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "A10" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "A11" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "A12" } },
+							new ColumnTitleLocation { col = 13, cellRefs = new List<string> { "A13" } },
+							new ColumnTitleLocation { col = 14, cellRefs = new List<string> { "A14" } },
+							new ColumnTitleLocation { col = 15, cellRefs = new List<string> { "A15" } },
+							new ColumnTitleLocation { col = 16, cellRefs = new List<string> { "A16" } },
+							new ColumnTitleLocation { col = 17, cellRefs = new List<string> { "A17" } },
+							new ColumnTitleLocation { col = 18, cellRefs = new List<string> { "A18" } },
+							new ColumnTitleLocation { col = 19, cellRefs = new List<string> { "A19" } },
+							new ColumnTitleLocation { col = 20, cellRefs = new List<string> { "A20" } },
+							new ColumnTitleLocation { col = 21, cellRefs = new List<string> { "A21" } },
+							new ColumnTitleLocation { col = 22, cellRefs = new List<string> { "A22" } },
+
+							new ColumnTitleLocation { col = 25, cellRefs = new List<string> { "A25" } },
+							new ColumnTitleLocation { col = 26, cellRefs = new List<string> { "A26" } },
+							new ColumnTitleLocation { col = 27, cellRefs = new List<string> { "A27" } },
+							new ColumnTitleLocation { col = 28, cellRefs = new List<string> { "A28" } },
+							new ColumnTitleLocation { col = 29, cellRefs = new List<string> { "A29" } },
+							new ColumnTitleLocation { col = 30, cellRefs = new List<string> { "A30" } },
+							new ColumnTitleLocation { col = 31, cellRefs = new List<string> { "A31" } },
+							new ColumnTitleLocation { col = 32, cellRefs = new List<string> { "A32" } },
+							new ColumnTitleLocation { col = 33, cellRefs = new List<string> { "A33" } },
+							new ColumnTitleLocation { col = 34, cellRefs = new List<string> { "A34" } },
+							new ColumnTitleLocation { col = 35, cellRefs = new List<string> { "A35" } },
+							new ColumnTitleLocation { col = 36, cellRefs = new List<string> { "A36" } },
+							new ColumnTitleLocation { col = 37, cellRefs = new List<string> { "A37" } },
+
+							new ColumnTitleLocation { col = 40, cellRefs = new List<string> { "A40" } },
+							new ColumnTitleLocation { col = 41, cellRefs = new List<string> { "A41" } },
+							new ColumnTitleLocation { col = 42, cellRefs = new List<string> { "A42" } },
+							new ColumnTitleLocation { col = 43, cellRefs = new List<string> { "A43" } },
+							new ColumnTitleLocation { col = 44, cellRefs = new List<string> { "A44" } },
+							new ColumnTitleLocation { col = 45, cellRefs = new List<string> { "A45" } },
+							new ColumnTitleLocation { col = 46, cellRefs = new List<string> { "A46" } },
+							new ColumnTitleLocation { col = 47, cellRefs = new List<string> { "A47" } },
+							new ColumnTitleLocation { col = 48, cellRefs = new List<string> { "A48" } },
+							new ColumnTitleLocation { col = 49, cellRefs = new List<string> { "A49" } },
+							new ColumnTitleLocation { col = 50, cellRefs = new List<string> { "A50" } },
+							new ColumnTitleLocation { col = 51, cellRefs = new List<string> { "A51" } },
+							new ColumnTitleLocation { col = 52, cellRefs = new List<string> { "A52" } },
+							new ColumnTitleLocation { col = 53, cellRefs = new List<string> { "A53" } },
+							new ColumnTitleLocation { col = 54, cellRefs = new List<string> { "A54" } },
+						},
+						FirstRow = 8	// 11 -> 8
+					},
+				},
+
+				fields = new List<Field>
+				{
+					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "EnrolleeID", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string>
+						{
+							"Enrollee ID NumberID #",
+							"Enrollee ID NumberY or N",
+							"Enrollee Medicaid ID NumberID #",
+							"Enrollee Medicaid ID Number",
+							"Enrollee Medicaid ID Number:Y/N or N/A",
+							"Enrollee ID NumberY or N"
+						},
+						postProcRegex = new List<Tuple<string,string>>
+						{
+							new Tuple<string, string>("ID", ""),
+							new Tuple<string, string>("Totals", ""),
+							new Tuple<string, string>("Total", ""),
+							new Tuple<string, string>("Compliance", ""),
+							new Tuple<string, string>("Yes", ""),
+							new Tuple<string, string>("No", ""),
+							new Tuple<string, string>("N/A", ""),
+							new Tuple<string, string>("[#%+&Y]", ""),
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "ContactWithin5Days", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string>
+						{
+							"Was the initial contact completed within 5 business days if in community? 7 days for nursing facility?",
+							"Was the initial contact completed within 5 business days if in community? 7days for nursing facility?",
+							"Was the initial contact completed within 5 business days if in community?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "NhContactWithin7Days", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Or within 7 business days if in a nursing facility?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "PhoneFollowupWithing7Days", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Did CM conduct a telephone follow-up call within 7 business days after initial assessment?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "ContactsDocumented", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string>
+						{
+							"Were all contacts to enrollee that were attempted or made, documented in the case notes?",
+							"Were all contacts to enrollee documented in the case notes?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 6, Name = "PublicGuardianship", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Was the enrollee referred to the Public Guardianship Program if needed?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "ExplainedRights", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Did the CM explain the enrollee’s rights and responsibilities? Including grievance, appeal, and fair hearing info?",
+							"Did the CM explain the enrollee's rights and responsibilities? Including grievance, appeal, and the fair hearing info?",
+							"Did the CM explain the enrollee's rights and responsibilities?",
+							"Did the CM explain the enrollee’s rights and responsibilities?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "ExplainMedicaidRights", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Did the CM explain the enrollee's Medicaid Fair Hearing rights?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "ExplainGrievance", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Did the CM explain the grievance, appeal and fair hearing information to the enrollee?",
+							"Did the CM explain grievance, appeal, and fair hearing information to the enrollee?",
+							"Did the CM explain grievance and appeal information to the enrollee?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "VisitsDocumented", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Has CM documented contacts and face to face visits in a timely fashion?",
+							"Has CM documented contacts and face to face visits in a timely fashion? (per the timetable specified in the contract?)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "ServiceChangesDocumented", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Has CM documented changes in services in a timely fashion?",
+							"Has CM documented changes in services in a timely fashion? (per the timetable specified in the contract?)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "EmergencyPlanOnFile", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Is the enrollee's personal emergency plan in the case file?",
+							"Is the enrollee's persoN/Al emergency plan in the case file?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "RegisteredSpecialNeedsShelter", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is the enrollee registered with a Special Needs Shelter?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "PCPIdentified", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Is the enrollee's PCP identified?",
+							"Is the enrollee's primary care physician identified?"
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "FileHasEligibilityDocs", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Were copies of eligibility documents included in case file? (ie-LOC determinations, etc)",
+							"Were copies of eligibility documents included in case file? (ie-LOC determiN/Ations, etc)",
+							"Were copies of eligibility documents included in case file? (i.e.-LOC determinations, etc.)",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "FileHas701bAssessment", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is the 701-B assessment present in the case file and completed properly?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 17, Name = "FileHasHighRiskScreening_Monitoring", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Was there evidence of special screening for and monitoring of high risk persons and conditions documented in the case file?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 18, Name = "FileHasProviderChoice", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Is there documentation of individual provider choice and Medicaid Fair Hearing information?",
+							"Is there documentation of individual provider choice?",
+						}
+					},
+
+					new Field { fldType = FieldType.column, OutputOrder = 19, Name = "EnrolleeHasCarePlanCopy", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Did the enrollee receive a copy of their current care plan?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 20, Name = "DocumentedRisks_Barriers", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Were risks and barriers documented in the risk assessment?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 21, Name = "DocumentedInterventions", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Are interventions documented in the care plan?",
+							"Are interventions docmented in the care plan?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 22, Name = "DocumentedServiceSchedules", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Are service schedules documented in the care plan?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 23, Name = "DocumentedMedicationManagement", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Are medication management strategies documented in the care plan?",
+							"Are medication maN/Agement strategies documented in the care plan?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 24, Name = "DocumentedProgress", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Is progress documented in the care plan or case file?",
+							"Is progress of documented in the care plan or case file?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 25, Name = "CarePlanSentToPhysician", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Was the care plan sent to the enrollee's primary care physician?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 26, Name = "CarePlanSigned", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is the care plan signed on the initial date of development, and every additional update?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 27, Name = "CarePlanSignedOnDevelopmentDate", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is the care plan signed on the initial date of development" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 28, Name = "CarePlanSignedEveryUpdate", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is the care plan signed for every care plan update?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 29, Name = "ConsistentServiceAuthorizations", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Are the service authorizations consistent with the plan of care?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 30, Name = "CarePlanUpdated", DataFormat = DataFormatType.String,
+						titles = new List<string> { "If the enrollee's services have changed, does the care plan reflect these updates?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 31, Name = "FileHasCareSummary", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is a plan of care summary included in the case file?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 32, Name = "EnrolleeHasCareSummary", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Did the enrollee or representative receive a copy of the plan of care summary?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 33, Name = "FileHasManagedDiagnosisDocumentation", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Is there documentation in the case file that the enrollee's diagnoses are being managed effectively?",
+							"Is there documentation in the case file that the enrollee's diagnoses are being maN/Aged effectively?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 34, Name = "MonthlyPhoneVerification", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Were monthly telephone contacts made and documented to verify satisfaction and receipt of services?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 35, Name = "QtrlyVisitHome", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Were face to face visits made and documented every three months to evaluate and document the home characteristics?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 36, Name = "QtrlyVisitReview", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Was the care plan reviewed during face to face quarterly visit?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 37, Name = "YrlyVisitDocumented", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Was the annual face-to-face visit with enrollee documented and completed for annual reassessment?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 38, Name = "EnrolleeCareLevelCurrent", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is the enrollee's level of care current?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 39, Name = "YrlyHandbookReview", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Has the CM documented reviewing the enrollee handbook with the enrollee/reps on a yearly basis?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 40, Name = "ContactProviderClNeeds", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Has the CM documented contacting the CL’s HCBS providers to discuss their assessment of the CL's needs?",
+							"Has the CM documented contacting the CL's HCBS providers to discuss their assessment of the CL's needs?",
+							"Has the CM documented contacting the enrollees HCBS providers to discuss their assessment of the enrollees' needs?",
+							"Has the CM documented contacting the enrollee’s HCBS providers to discuss their assessment of the enrollee's needs?",
+							"Has the CM documented contacting the enrollee’s HCBS providers to discuss their assessment of the enrollee's needs and status?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 41, Name = "EnrolleeHasOutsideReferrals", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Have referrals have been provided to the enrollee outside of the Managed Care Organization?",
+							"Have referrals been provided to the enrollee outside of the Managed Care Organization?",
+							"Have referrals been provided to the enrollee outside of the MaN/Aged Care Organization?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 42, Name = "EnrolleeNotifiedOnRejection", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"If the enrollee has a service request that is denied, reduced, terminated or suspended, were they notified in writing?",
+							"If the enrollee has a service request that is denied, reduced, termiN/Ated or suspended, were they notified in writing?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 43, Name = "YrlyProviderContactEnrolleeNeeds", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Were the enrollee’s HCBS providers contacted at least annually to discuss their assessment of the CL’s needs and status?",
+							"Were the enrollee's HCBS providers contacted at least annually to discuss their assessment of the CL's needs and status?",
+							"Were the enrollee's HCBS providers contacted at least annually to discuss their assessment of the enrollee's needs and status?",
+							"Were the enrollee’s HCBS providers contacted at least annually to discuss their assessment of the enrollee’s needs and status?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 44, Name = "AlfLikeHomeDocuments", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Was there documentation of home-like characteristic for enrollee's in ALFs.",
+							"Was there documentation of home-like characteristic for enrollee's in ALF's.",
+							"Was there documentation of home-like characteristic for enrollees in ALFs.",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 45, Name = "FileHasNeedsAssesmentsPhysicianReferrals", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Are needs assessments and physican referrals included in case file?",
+							"Are needs assessments and physican referrals included in the case file?",
+							"Are needs assessments and physician referrals included in the case file?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 46, Name = "FileHasCaseNarrativesOfContacts", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"Are ongoing case narratives present in the case file, that document case management visits and other contacts?",
+							"Are ongoing case N/Arratives present in the case file, that document case maN/Agement visits and other contacts?",
+						}
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 47, Name = "FileHasSatisfactionSurveys", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Are satisfaction surveys present in the case file?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 48, Name = "QualityRemediationInCaseNotes", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Do the case notes document the review of complaints and the quality remediation to resolve and prevent problems?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 49, Name = "DocumentedQrtlyProgress", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Is progress documented at least quarterly on the members care plan for the person centered care plans?" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 50, Name = "TimelyAnnualAssesment", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Was the annual assessment completed timely? (no more than 60 days before the LOC date and no less than 30 days before the LOC date)" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 51, Name = "MC_PlanName", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string>
+						{
+							"LTC Managed Care Contractor:",
+							"LTC Managed Care Organization:",
+							"LTC MaN/Aged Care Organization:",
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 52, Name = "Reviewer", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Reviewer:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 53, Name = "Date", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Date:" }
+					},
+					new Field { fldType = FieldType.fileName, OutputOrder = 54, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+				}
+			};
+
 			// Create list of data source types.
 			dst.types = new List<SpreadSheetLayout>
 			{
@@ -2097,6 +3110,17 @@ namespace Read_XLSX
 						new SheetLayout { Names = new List<string> { "Sheet1" }, isOptional = true }
 					}
 				},
+
+				new SpreadSheetLayout
+				{
+					Name = "Managed Care Case Management File Audit",
+					procType = ProcessType.MatchByClosestWorkSheetLayout,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mccma }
+					}
+				}
 
 			};
 

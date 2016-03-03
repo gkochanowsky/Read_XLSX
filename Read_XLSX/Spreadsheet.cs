@@ -55,7 +55,8 @@ namespace Read_XLSX
 
 		public bool HasRequiredCol(List<int> reqCol)
 		{
-			var cols = Cells.Select(c => c.Key).ToList();
+			// list of required columns with a value
+			var cols = Cells.Where(c => c.Value.field.isRequired && !string.IsNullOrWhiteSpace(c.Value.Value)).Select(c => c.Key).ToList();
 			var missing = reqCol.Where(r => !cols.Contains(r));
 			return missing.Count() == 0;
 		}
@@ -271,11 +272,24 @@ namespace Read_XLSX
 		{
 			Dictionary<int, Field> cols = new Dictionary<int, Field>();
 			sLayout.wsLayout.fieldColMap.colmaps.ForEach(cm => cols.Add(cm.column, cm.field));
-			
-			var tcs = wsp.Worksheet.Descendants<Cell>()
-										.Where(c => c.InnerText.Length > 0)
-										.Select(t => new { cell = t, row = GetRowNum(t.CellReference.InnerText), col = GetColumn(t.CellReference.InnerText) })
-										.Where(k => k.row >= sLayout.wsLayout.fieldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
+
+			IEnumerable<CellRowCol> tcs = Enumerable.Empty<CellRowCol>();
+
+			switch (sLayout.wsLayout.fieldColMap.colLayout.colLayoutType)
+			{
+				case ColLayoutType.Row_Col:
+					tcs = wsp.Worksheet.Descendants<Cell>()
+												.Where(c => c.InnerText.Length > 0)
+												.Select(t => new CellRowCol { cell = t, row = GetRowNum(t.CellReference.InnerText), col = GetColumn(t.CellReference.InnerText) })
+												.Where(k => k.row >= sLayout.wsLayout.fieldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
+					break;
+				case ColLayoutType.Col_Row:
+					tcs = wsp.Worksheet.Descendants<Cell>()
+												.Where(c => c.InnerText.Length > 0)
+												.Select(t => new CellRowCol { cell = t, col = GetRowNum(t.CellReference.InnerText), row = GetColumn(t.CellReference.InnerText) })
+												.Where(k => k.row >= sLayout.wsLayout.fieldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
+					break;
+			}
 
 			foreach (var tc in tcs)
 			{
@@ -304,6 +318,26 @@ namespace Read_XLSX
 				mult *= 26;
 			}
 			return col;
+		}
+
+		public static string GetCellRef(int row, int col)
+		{
+			string colRef = GetColRef(col);
+			return colRef + row.ToString();
+		}
+
+		/// <summary>
+		/// col starts at 1
+		/// </summary>
+		/// <param name="col"></param>
+		/// <returns></returns>
+		public static string GetColRef(int col)
+		{
+			int plc = (col - 1) % 26;
+			int bal = (col - 1) / 26;
+			var plcStr = ((char)('A' + plc)).ToString();
+			var plcRef = (bal > 0 ? GetColRef(bal) : "") + plcStr;
+			return plcRef;
 		}
 
 		public static string GetCellValue(Cell c, SharedStringTable stringTable, CellFormats formats, Field colmn)
@@ -371,8 +405,9 @@ namespace Read_XLSX
 				}
 			}
 
-			if (sval != null && colmn != null && colmn.postProcRegex != null && colmn.postProcRegex.Count() == 2)
-				sval = Regex.Replace(sval, colmn.postProcRegex[0], colmn.postProcRegex[1]);
+			if (sval != null && colmn != null && colmn.postProcRegex != null)
+				foreach(var d in colmn.postProcRegex)
+					sval = Regex.Replace(sval, d.Item1, d.Item2);
 
 			if (sval != null)
 			{
@@ -385,7 +420,7 @@ namespace Read_XLSX
 				sval = sval.Replace("\t", "");
 			}
 
-			return sval;
+			return sval.Trim();
 		}
 
 		private static string FixDate(string dt)
@@ -411,5 +446,12 @@ namespace Read_XLSX
 
 			return dt;
 		}
+	}
+
+	class CellRowCol
+	{
+		public Cell cell { get; set; }
+		public int row { get; set; }
+		public int col { get; set; }
 	}
 }

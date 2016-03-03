@@ -18,8 +18,11 @@ namespace Read_XLSX
 	{
 		static void Main(string[] args)
 		{
-			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_me";
+//			var tst = Spreadsheet.GetCellRef(7, 28);
 
+			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_mccma";
+
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_me";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_cor";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_co";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_ntf";
