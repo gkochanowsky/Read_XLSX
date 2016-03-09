@@ -291,13 +291,22 @@ namespace Read_XLSX
 					break;
 			}
 
+
 			foreach (var tc in tcs)
 			{
-				string sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, cols[tc.col]);
-				var dataCell = new DataCellValue { CellReference = tc.cell.CellReference.InnerText, rowNumber = tc.row, field = cols[tc.col], Value = sval };
-				sLayout.dataSet.AddCell(dataCell);
+				try
+				{
+					string sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, cols[tc.col]);
+					var dataCell = new DataCellValue { CellReference = tc.cell.CellReference.InnerText, rowNumber = tc.row, field = cols[tc.col], Value = sval };
+					sLayout.dataSet.AddCell(dataCell);
+				}
+				catch (Exception ex)
+				{
+					Log.New.Msg(ex);
+				}
 			}
 		}
+
 
 		public static int GetRowNum(string address)
 		{
@@ -418,9 +427,10 @@ namespace Read_XLSX
 				//}
 
 				sval = sval.Replace("\t", "");
+				sval.Trim();
 			}
 
-			return sval.Trim();
+			return sval;
 		}
 
 		private static string FixDate(string dt)

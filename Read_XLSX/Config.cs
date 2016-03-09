@@ -343,9 +343,9 @@ namespace Read_XLSX
 						Version = 7,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true }
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined }
 						}
 					}
 				},
@@ -679,8 +679,8 @@ namespace Read_XLSX
 						Version = 1,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A2", ValueRef = "A2", isCombined = true },
-							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
+							new CellLocation { TitleRef = "A2", ValueRef = "A2", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined },
 						}
 					},
 					new CellLayoutVersion
@@ -688,9 +688,9 @@ namespace Read_XLSX
 						Version = 2,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true }
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined }
 						}
 					},
 					new CellLayoutVersion
@@ -699,7 +699,7 @@ namespace Read_XLSX
 						cellLocations = new List<CellLocation>
 						{
 							new CellLocation { TitleRef = "A2", ValueRef = "A2" },
-							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true }
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined }
 						}
 					},
 					new CellLayoutVersion
@@ -736,8 +736,8 @@ namespace Read_XLSX
 						Version = 7,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
 						}
 					},
 					new CellLayoutVersion
@@ -745,7 +745,7 @@ namespace Read_XLSX
 						Version = 8,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "A4", ValueRef = "C4" },
 							new CellLocation { TitleRef = "A5", ValueRef = "C5" }
 						}
@@ -755,7 +755,7 @@ namespace Read_XLSX
 						Version = 9,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "A4", ValueRef = "B4" },
 							new CellLocation { TitleRef = "A5", ValueRef = "B5" },
 						}
@@ -972,9 +972,9 @@ namespace Read_XLSX
 						Version = 3,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
-							new CellLocation { TitleRef = "A6", ValueRef = "A6", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A6", ValueRef = "A6", dataLayout = CellDataLayout.combined },
 						}
 					},
 					new CellLayoutVersion
@@ -982,8 +982,8 @@ namespace Read_XLSX
 						Version = 4,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "A6", ValueRef = "C6" },
 						}
 					},
@@ -992,8 +992,8 @@ namespace Read_XLSX
 						Version = 5,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "A6", ValueRef = "B6" },
 						}
 					},
@@ -1112,9 +1112,9 @@ namespace Read_XLSX
 						Version = 2,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
-							new CellLocation { TitleRef = "A6", ValueRef = "A6", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A6", ValueRef = "A6", dataLayout = CellDataLayout.combined },
 						}
 					},
 					new CellLayoutVersion
@@ -1133,8 +1133,8 @@ namespace Read_XLSX
 						cellLocations = new List<CellLocation>
 						{
 							new CellLocation { TitleRef = "A4", ValueRef = "C4" },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
-							new CellLocation { TitleRef = "A6", ValueRef = "A6", isCombined = true },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A6", ValueRef = "A6", dataLayout = CellDataLayout.combined },
 						}
 					},
 					new CellLayoutVersion
@@ -1142,8 +1142,8 @@ namespace Read_XLSX
 						Version = 5,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "A6", ValueRef = "C6" },
 						}
 					},
@@ -1152,8 +1152,8 @@ namespace Read_XLSX
 						Version = 6,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true },
-							new CellLocation { TitleRef = "A5", ValueRef = "A5", isCombined = true },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "A6", ValueRef = "B6" },
 						}
 					},
@@ -1278,7 +1278,7 @@ namespace Read_XLSX
 						cellLocations = new List<CellLocation>
 						{
 							new CellLocation { TitleRef = "A1", ValueRef = "D1"  },
-							new CellLocation { TitleRef = "A2", ValueRef = "A2", isCombined = true },
+							new CellLocation { TitleRef = "A2", ValueRef = "A2", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "C2", ValueRef = "E2" }
 						}
 					},
@@ -1288,7 +1288,7 @@ namespace Read_XLSX
 						cellLocations = new List<CellLocation>
 						{
 							new CellLocation { TitleRef = "A1", ValueRef = "A1"  },
-							new CellLocation { TitleRef = "A2", ValueRef = "A2", isCombined = true },
+							new CellLocation { TitleRef = "A2", ValueRef = "A2", dataLayout = CellDataLayout.combined },
 							new CellLocation { TitleRef = "C2", ValueRef = "E2" }
 						}
 					},
@@ -1550,7 +1550,7 @@ namespace Read_XLSX
 						cellLocations = new List<CellLocation>
 						{
 							new CellLocation { TitleRef = "A5", ValueRef = "A6" },
-							new CellLocation { TitleRef = "A23", ValueRef = "A23", isCombined = true },
+							new CellLocation { TitleRef = "A23", ValueRef = "A23", dataLayout = CellDataLayout.combined },
 						}
 					},
 					new CellLayoutVersion
@@ -1927,6 +1927,152 @@ namespace Read_XLSX
 				}
 			};
 
+			var wsLayout_pdo = new WorkSheetLayout
+			{
+				Name = "Monthly PDO Report(0137)",
+				OutputFileName = "Data_Extract_PDO",
+				fldDelim = "\t",
+				recDelim = System.Environment.NewLine,
+				layoutType = LayoutType.Both,
+				dst = dst,
+
+				cellLayouts = new List<CellLayoutVersion>
+				{
+					new CellLayoutVersion
+					{
+						Version = 1,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A2", ValueRef = "B2" },
+							new CellLocation { TitleRef = "A3", ValueRef = "B3" },
+							new CellLocation { TitleRef = "A4", ValueRef = "B4" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 2,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A2", ValueRef = "C2" },
+							new CellLocation { TitleRef = "A3", ValueRef = "C3" },
+							new CellLocation { TitleRef = "A4", ValueRef = "C4" }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 3,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A1",  ValueRef = "A1", dataLayout = CellDataLayout.aggregate, aggregateCellCnt = 3, aggregateCellSeparator = @"\n",
+								cellMaps = new List<AggregateFieldCellMap>
+								{
+									new AggregateFieldCellMap { aggregateIdx = 0, dataLayout = CellDataLayout.combined },
+									new AggregateFieldCellMap { aggregateIdx = 2, dataLayout = CellDataLayout.lookup, lookupString = "month" },
+								}
+							},
+						}
+					},
+				},
+
+				colLayouts = new List<ColumnLayoutVersion>
+				{
+					new ColumnLayoutVersion
+					{
+						Version = 1,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A2" }, isGroupData = true },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B2" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C2" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D3" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E3" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F3" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G3" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H3" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I2" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J2" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K2" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L2" } },
+						},
+						FirstRow = 4
+					},
+					new ColumnLayoutVersion
+					{
+						Version = 2,
+						titleLocations = new List<ColumnTitleLocation>
+						{
+							new ColumnTitleLocation { col = 1, cellRefs = new List<string> { "A5" } },
+							new ColumnTitleLocation { col = 2, cellRefs = new List<string> { "B5" } },
+							new ColumnTitleLocation { col = 3, cellRefs = new List<string> { "C5" } },
+							new ColumnTitleLocation { col = 4, cellRefs = new List<string> { "D6" } },
+							new ColumnTitleLocation { col = 5, cellRefs = new List<string> { "E6" } },
+							new ColumnTitleLocation { col = 6, cellRefs = new List<string> { "F6" } },
+							new ColumnTitleLocation { col = 7, cellRefs = new List<string> { "G6" } },
+							new ColumnTitleLocation { col = 8, cellRefs = new List<string> { "H6" } },
+							new ColumnTitleLocation { col = 9, cellRefs = new List<string> { "I5" } },
+							new ColumnTitleLocation { col = 10, cellRefs = new List<string> { "J5" } },
+							new ColumnTitleLocation { col = 11, cellRefs = new List<string> { "K5" } },
+							new ColumnTitleLocation { col = 12, cellRefs = new List<string> { "L5" } },
+						},
+						FirstRow = 7
+					},
+				},
+
+				fields = new List<Field>
+				{
+					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "LastName", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Participant Last Name" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "FirstName", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Participant First Name" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, isRequired = true,
+						titles = new List<string> { "Medicaid ID" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "hasAdultCompanion", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Adult Companion Care" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "hasAttendantCare", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Attendant Care" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 6, Name = "hasHomemakerServices", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Homemaker Services" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "hasNursing", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Intermittent and Skilled Nursing" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "hasPersonalCareServices", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Personal Care Services" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "EnrollmentStatus", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Enrollment Status (Enrolled/Disenrolled)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "EnrollmentDate", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "Enrollment Date (mm/dd/yyyy)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 11, Name = "DisenrollmentDate", DataFormat = DataFormatType.Date,
+						titles = new List<string> { "Disenrollment Date (mm/dd/yyyy)" }
+					},
+					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DisenrollmentReason", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Disenrollment Reason (Reasons can be found in the PDO Manual)" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 13, Name = "MC_PlanName", DataFormat = DataFormatType.String,
+						titles = new List<string>
+						{
+							"NAME OF MANAGED CARE PLAN:",
+							"Managed Care Plan ID:",
+						}
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 14, Name = "Date", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Reporting Month (MM/DD/YYYY):", "Month" }
+					},
+					new Field { fldType = FieldType.fileName, OutputOrder = 15, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Region", DataFormat = DataFormatType.String, rowType = RowType.GroupData,
+						titles = new List<string> { "REGION" }
+					}
+				}
+			};
+
 			var wsLayout_mccma = new WorkSheetLayout
 			{
 				Name = "Case Management File Audit Report (0102)",
@@ -1943,9 +2089,9 @@ namespace Read_XLSX
 						Version = 1,
 						cellLocations = new List<CellLocation>
 						{
-							new CellLocation { TitleRef = "A2", ValueRef = "A2", isCombined = true },
-							new CellLocation { TitleRef = "A3", ValueRef = "A3", isCombined = true },
-							new CellLocation { TitleRef = "A4", ValueRef = "A4", isCombined = true }
+							new CellLocation { TitleRef = "A2", ValueRef = "A2", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined }
 						}
 					},
 				},
@@ -2939,192 +3085,214 @@ namespace Read_XLSX
 			// Create list of data source types.
 			dst.types = new List<SpreadSheetLayout>
 			{
-				new SpreadSheetLayout
-				{
-					Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
-					procType = ProcessType.MatchAllDataWorkSheets,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout { Names = new List<string> { "Instructions" } },
-						new SheetLayout { Names = new List<string> { "Codes" } },
-						new SheetLayout { Names = new List<string> { "January" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "February" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "March" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "April" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "May" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "June" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "July" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "August" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "September" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "October" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "November" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "December" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "Summary" } },
-						new SheetLayout { Names = new List<string> { "October 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "November 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
-						new SheetLayout { Names = new List<string> { "December 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
-					}
-				},
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
+				//	procType = ProcessType.MatchAllDataWorkSheets,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { Names = new List<string> { "Instructions" } },
+				//		new SheetLayout { Names = new List<string> { "Codes" } },
+				//		new SheetLayout { Names = new List<string> { "January" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "February" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "March" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "April" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "May" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "June" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "July" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "August" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "September" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "October" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "November" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "December" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "Summary" } },
+				//		new SheetLayout { Names = new List<string> { "October 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "November 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
+				//		new SheetLayout { Names = new List<string> { "December 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Enrollee Roster and Facility Residence Report (0129)",
+				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_erfr }
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Managed Care Missed Services Report",
+				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mcms }
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Nursing Facility Transfer Report",
+				//	procType = ProcessType.MatchAllDataWorkSheets,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout
+				//		{
+				//			Names = new List<string>
+				//			{
+				//				"Nursing Facility to Community",
+				//				"Nursing Facility_to Community",
+				//				"Nursing Faclity To Community",
+				//			},
+				//			sheetType = SheetType.SourceData,
+				//			wsLayout = wsLayout_nftr_to_comm
+				//		},
+				//		new SheetLayout
+				//		{
+				//			Names = new List<string>
+				//			{
+				//				"Community to Nursing Facility",
+				//				"Community_to_NursingFacility",
+				//				"Community To Nursing Faclity",
+				//			},
+				//			sheetType = SheetType.SourceData,
+				//			wsLayout = wsLayout_nftr_to_nh
+				//		},
+				//		new SheetLayout
+				//		{
+				//			Names = new List<string>
+				//			{
+				//				"Sheet2",
+				//				"Sheet3",
+				//			},
+				//			isOptional = true
+				//		},
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Community Outreach v1",
+				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co },
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Community Outreach v2",
+				//	procType = ProcessType.MatchAllDataWorkSheets,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout
+				//		{
+				//			Names = new List<string>
+				//			{
+				//				"Info Sheet",
+				//				"Plan Info Sheet"
+				//			},
+				//			sheetType = SheetType.CommonData,
+				//			wsLayout = wsLayout_co_info
+				//		},
+				//		new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event },
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Community Outreach Representative",
+				//	procType = ProcessType.MatchAllDataWorkSheets,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { Names = new List<string> { "Instructions" }, isOptional = true },
+				//		new SheetLayout { Names = new List<string> { "Jurat" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_cor_jurat },
+				//		new SheetLayout { Names = new List<string> { "Representative Activity" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cor_activity },
+				//		new SheetLayout { Names = new List<string> {  "Sheet1", "Sheet3" }, isOptional = true }
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Marketing/Public/Educational Events",
+				//	procType = ProcessType.MatchAllDataWorkSheets,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { Names = new List<string> { "Instructions-Definitions" }, isOptional = true },
+				//		new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
+				//		new SheetLayout { Names = new List<string> { "Monthly Events Report" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events }
+				//	}
+				//},
+
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Marketing/Public/Educational Events and Community Outreach",
+				//	procType = ProcessType.MatchAllDataWorkSheets,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
+				//		new SheetLayout { Names = new List<string> { "Marketing Events" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events },
+				//		new SheetLayout
+				//		{
+				//			Names = new List<string>
+				//			{
+				//				"Community Outreach Events",
+				//				"Education Comm Outreach Events",
+				//			},
+				//			sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event
+				//		},
+				//		new SheetLayout { Names = new List<string> { "Sheet1" }, isOptional = true }
+				//	}
+				//},
 
 				new SpreadSheetLayout
 				{
-					Name = "Enrollee Roster and Facility Residence Report (0129)",
+					Name = "PDO Report",
 					procType = ProcessType.MatchByClosestWorkSheetLayout,
 					types = dst,
 					sLayouts = new List<SheetLayout>
 					{
-						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_erfr }
+						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_pdo }
 					}
 				},
 
-				new SpreadSheetLayout
-				{
-					Name = "Managed Care Missed Services Report",
-					procType = ProcessType.MatchByClosestWorkSheetLayout,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mcms }
-					}
-				},
-
-				new SpreadSheetLayout
-				{
-					Name = "Nursing Facility Transfer Report",
-					procType = ProcessType.MatchAllDataWorkSheets,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout
-						{
-							Names = new List<string>
-							{
-								"Nursing Facility to Community",
-								"Nursing Facility_to Community",
-								"Nursing Faclity To Community",
-							},
-							sheetType = SheetType.SourceData,
-							wsLayout = wsLayout_nftr_to_comm
-						},
-						new SheetLayout
-						{
-							Names = new List<string>
-							{
-								"Community to Nursing Facility",
-								"Community_to_NursingFacility",
-								"Community To Nursing Faclity",
-							},
-							sheetType = SheetType.SourceData,
-							wsLayout = wsLayout_nftr_to_nh
-						},
-						new SheetLayout
-						{
-							Names = new List<string>
-							{
-								"Sheet2",
-								"Sheet3",
-							},
-							isOptional = true
-						},
-					}
-				},
-
-				new SpreadSheetLayout
-				{
-					Name = "Community Outreach v1",
-					procType = ProcessType.MatchByClosestWorkSheetLayout,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co },
-					}
-				},
-
-				new SpreadSheetLayout
-				{
-					Name = "Community Outreach v2",
-					procType = ProcessType.MatchAllDataWorkSheets,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout
-						{
-							Names = new List<string>
-							{
-								"Info Sheet",
-								"Plan Info Sheet"
-							},
-							sheetType = SheetType.CommonData,
-							wsLayout = wsLayout_co_info
-						},
-						new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event },
-					}
-				},
-
-				new SpreadSheetLayout
-				{
-					Name = "Community Outreach Representative",
-					procType = ProcessType.MatchAllDataWorkSheets,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout { Names = new List<string> { "Instructions" }, isOptional = true },
-						new SheetLayout { Names = new List<string> { "Jurat" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_cor_jurat },
-						new SheetLayout { Names = new List<string> { "Representative Activity" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cor_activity },
-						new SheetLayout { Names = new List<string> {  "Sheet1", "Sheet3" }, isOptional = true }
-					}
-				},
-
-				new SpreadSheetLayout
-				{
-					Name = "Marketing/Public/Educational Events",
-					procType = ProcessType.MatchAllDataWorkSheets,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout { Names = new List<string> { "Instructions-Definitions" }, isOptional = true },
-						new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
-						new SheetLayout { Names = new List<string> { "Monthly Events Report" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events }
-					}
-				},
-
-				new SpreadSheetLayout
-				{
-					Name = "Marketing/Public/Educational Events and Community Outreach",
-					procType = ProcessType.MatchAllDataWorkSheets,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
-						new SheetLayout { Names = new List<string> { "Marketing Events" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events },
-						new SheetLayout
-						{
-							Names = new List<string>
-							{
-								"Community Outreach Events",
-								"Education Comm Outreach Events",
-							},
-							sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event
-						},
-						new SheetLayout { Names = new List<string> { "Sheet1" }, isOptional = true }
-					}
-				},
-
-				new SpreadSheetLayout
-				{
-					Name = "Managed Care Case Management File Audit",
-					procType = ProcessType.MatchByClosestWorkSheetLayout,
-					types = dst,
-					sLayouts = new List<SheetLayout>
-					{
-						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mccma }
-					}
-				}
+				//new SpreadSheetLayout
+				//{
+				//	Name = "Managed Care Case Management File Audit",
+				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
+				//	types = dst,
+				//	sLayouts = new List<SheetLayout>
+				//	{
+				//		new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mccma }
+				//	}
+				//}
 
 			};
 
 			dst.types.ForEach(ssl => ssl.sLayouts.ForEach(sl => sl.ssLayout = ssl));
+			//dst.types.
+			//	ForEach(ssl => ssl.sLayouts.
+			//		ForEach(sl => sl.wsLayout.cellLayouts.
+			//			ForEach(cl => cl.cellLocations.
+			//				ForEach(c => 
+			//				{
+			//					c.cellLayoutVersion = cl;
+			//				})
+			//			)
+			//		)
+			//	);
 
 			return dst.types;
 		}

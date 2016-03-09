@@ -129,11 +129,11 @@ namespace Read_XLSX
 			// Add all the match by closest worksheet layouts
 			List<SpreadSheetLayout> procTypes = new List<SpreadSheetLayout>();
 
-			foreach(var sl in types.Where(t => t.procType == ProcessType.MatchAllDataWorkSheets))
+			foreach (var sl in types.Where(t => t.procType == ProcessType.MatchAllDataWorkSheets))
 			{
 				var matches = new List<SheetLayoutMap>();
 
-				foreach(var s in shts)
+				foreach (var s in shts)
 				{
 					var shtName = Regex.Replace(s.Name.Value.Replace('\n', ' '), @"\s+", " ").Trim().ToLower();
 
@@ -143,7 +143,7 @@ namespace Read_XLSX
 					{
 						var nms = slo.Names.Select(n => Regex.Replace(n.Replace('\n', ' '), @"\s+", " ").Trim().ToLower());
 
-						if(nms.Contains(shtName))
+						if (nms.Contains(shtName))
 						{
 							slm.layout = slo;
 							break;
@@ -161,7 +161,7 @@ namespace Read_XLSX
 					procTypes.Add(sl);
 			}
 
-			if(procTypes.Count() == 0)
+			if (procTypes.Count() == 0)
 				procTypes.AddRange(types.Where(p => p.procType == ProcessType.MatchByClosestWorkSheetLayout).ToList());
 
 			if (procTypes.Count() == 0) return null;
@@ -175,7 +175,7 @@ namespace Read_XLSX
 				{
 					case ProcessType.MatchAllDataWorkSheets:
 
-						foreach(var sht in wbp.Workbook.Descendants<Sheet>())
+						foreach (var sht in wbp.Workbook.Descendants<Sheet>())
 						{
 							var sheetLayout = dst.sLayouts.FirstOrDefault(sl => sl.Names.Select(n => n.Trim().ToLower()).Contains(sht.Name.Value.ToLower().Trim()));
 
@@ -223,8 +223,8 @@ namespace Read_XLSX
 					break;
 				}
 			}
-			
-			if(type == null)
+
+			if (type == null)
 			{
 
 				// Log best no match data.
@@ -314,7 +314,7 @@ namespace Read_XLSX
 					break;
 			}
 
-			if(md.isPass)
+			if (md.isPass)
 			{
 				if (sheetLayout.srcWorksheets == null)
 					sheetLayout.srcWorksheets = new List<Worksheet>();
@@ -386,7 +386,7 @@ namespace Read_XLSX
 										});
 
 						// if required field and should be verified then check that first row has value
-						if(sheetLayout.wsLayout.verifyFirstRowData && cm.field != null && cm.field.isRequired )
+						if (sheetLayout.wsLayout.verifyFirstRowData && cm.field != null && cm.field.isRequired)
 						{
 							int col = fcvm.colLayout.colLayoutType == ColLayoutType.Row_Col ? cm.column : fcvm.colLayout.FirstRow;
 							int row = fcvm.colLayout.colLayoutType == ColLayoutType.Row_Col ? fcvm.colLayout.FirstRow : cm.column;
@@ -437,7 +437,7 @@ namespace Read_XLSX
 			}
 
 			// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
-			var colLayout_v = md.fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0 && sv.ReqNoValCnt == 0).OrderByDescending(sv => sv.notNullTitleCnt).ThenByDescending(sv => sv.disOrder).FirstOrDefault();
+			var colLayout_v = md.fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0 && (!sheetLayout.wsLayout.verifyFirstRowData || sv.ReqNoValCnt == 0)).OrderByDescending(sv => sv.notNullTitleCnt).ThenByDescending(sv => sv.disOrder).FirstOrDefault();
 
 			md.fldColMap = sheetLayout.wsLayout.fieldColMap = colLayout_v;
 
@@ -482,82 +482,41 @@ namespace Read_XLSX
 				md.fldCellVersMaps.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
 			}
 
+			md.fldCellVersMaps.ForEach(vm => vm.fldmaps.ForEach(vfm => vfm.versMap = vm));
+
 			var reqFlds = sheetLayout.wsLayout.fields.Where(sf => sf.fldType == FieldType.cell && sf.isRequired);
 
 			// Match Titles to layout fields
 			foreach (var flvv in md.fldCellVersMaps)
 			{
+				var agMaps = new List<FieldCellMap>();
+
 				foreach (var fm in flvv.fldmaps.Where(m => m.Title != null))
 				{
-					foreach (var fld in sheetLayout.wsLayout.fields.Where(f => f.fldType == FieldType.cell))
-					{
-						try
-						{
-							if (fm.cellLoc.isCombined)
-							{
-								var titles = fld.titles.Select(t => t.ToLower()).Where(t => fm.Title.StartsWith(t));
-
-								if (titles.Count() > 0)
-								{
-									fm.field = fld;
-									var title = titles.FirstOrDefault();
-									if (fm.Value != null && fm.Value.Length > titles.FirstOrDefault().Length)
-										fm.Value = fm.Value != null ? fm.Value.Substring(title.Length, fm.Value.Length - title.Length).Trim() : null;
-
-									if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
-									{
-										var val = fm.Value.Replace("(", "").Replace(")", "").Replace(":", "");
-										if (val.Contains("Through"))
-											val = val.Substring(0, val.IndexOf("Through", StringComparison.OrdinalIgnoreCase));
-										DateTime outVal;
-										if (DateTime.TryParse(val, out outVal))
-										{
-											if (fld.DataFormat == DataFormatType.Date)
-												fm.Value = outVal.ToShortDateString();
-											else
-												fm.Value = outVal.ToString();
-										}
-										else
-											fm.Value = null;
-									}
-									break;
-								}
-							}
-							else
-							{
-								if (fm.Title != null && fld.titles.Select(t => t.ToLower()).Contains(fm.Title))
-								{
-									fm.field = fld;
-
-									if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
-									{
-										var cell = tcs.Where(c => c.CellReference == fm.cellLoc.ValueRef).FirstOrDefault();
-										fm.Value = Spreadsheet.GetCellValue(cell, stringTable.SharedStringTable, formats, fld);
-									}
-
-									break;
-								}
-							}
-						}
-						catch (Exception ex)
-						{
-							Log.New.Msg(ex);
-						}
-					}
+					MatchField(tcs, fm, sheetLayout, stringTable, formats, agMaps);
 				}
 
+				flvv.fldmaps.AddRange(agMaps);
+
+				// Only keep data containing CellDataLayouts
+				var fmts = new List<CellDataLayout> { CellDataLayout.combined, CellDataLayout.separate };
+				flvv.fldmaps = flvv.fldmaps.Where(fm => fm.cellLoc != null && fmts.Contains(fm.cellLoc.dataLayout)).ToList();
+
+				// Add a filename layout if the field exists.
 				var fileFld = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.fileName);
 				if (fileFld != null)
 				{
-					flvv.fldmaps.Add(new FieldCellMap { field = fileFld, Value = file.FullName });
+					flvv.fldmaps.Add(new FieldCellMap { Title = FieldType.fileName.ToString(), field = fileFld, Value = file.FullName });
 				}
 
+				// Compute how well the matching went.
 				flvv.noneNullTitleCnt = flvv.fldmaps.Where(fm => !string.IsNullOrWhiteSpace(fm.Title)).Count();
 				flvv.noMatchCnt = flvv.fldmaps.Where(fm => fm.field == null).Count();
 				flvv.missingReqFldCnt = reqFlds.Where(rf => !flvv.fldmaps.Select(fm => fm.field).Contains(rf)).Count();
 				flvv.noValCnt = flvv.fldmaps.Where(fm => fm.field != null && fm.field.isRequired && string.IsNullOrWhiteSpace(fm.Value)).Count();
 			}
 
+			// Find the best acceptable layout match.
 			var fldLayout_v = md.fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
 
 			md.fldCellMap = sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
@@ -565,6 +524,166 @@ namespace Read_XLSX
 			md.matchCnt += md.fldCellMap != null ? 1 : 0;
 
 			return md;
+		}
+
+		private bool MatchField(IEnumerable<Cell> tcs, FieldCellMap fm, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats, List<FieldCellMap> agMaps)
+		{
+			bool foundFld = false;
+
+			foreach (var fld in sheetLayout.wsLayout.fields.Where(f => f.fldType == FieldType.cell))
+			{
+				if (foundFld)
+					break;
+
+				try
+				{
+					switch (fm.cellLoc.dataLayout)
+					{
+						case CellDataLayout.combined:
+							foundFld = MatchCombinedField(fld, fm);
+							break;
+						case CellDataLayout.separate:
+							foundFld = MatchSeparatedField(tcs, fld, fm, stringTable, formats);
+							break;
+						case CellDataLayout.aggregate:
+							// Cell contains an aggregate of fields. Based on 
+							{
+								var aggCell = tcs.Where(c => c.CellReference == fm.cellLoc.TitleRef).FirstOrDefault();
+								var val = Spreadsheet.GetCellValue(aggCell, stringTable.SharedStringTable, formats, null);
+								if (val != null && fm.cellLoc.aggregateCellCnt > 0 && fm.cellLoc.aggregateCellSeparator != null && fm.cellLoc.aggregateCellSeparator.Count() > 0)
+								{
+									var cells = Regex.Split(val.Trim(), fm.cellLoc.aggregateCellSeparator).ToList();
+									if (cells.Count() == fm.cellLoc.aggregateCellCnt)
+									{
+										var nfms = new List<FieldCellMap>();
+
+										foreach(var agv in fm.cellLoc.cellMaps)
+										{
+											FieldCellMap nfm = null;
+
+											switch (agv.dataLayout)
+											{
+												case CellDataLayout.combined:
+													nfm = new FieldCellMap {
+														Title = cells[agv.aggregateIdx].ToLower(),
+														Value = cells[agv.aggregateIdx],
+														versMap = fm.versMap,
+														cellLoc = new CellLocation
+														{
+															dataLayout = CellDataLayout.combined,
+															TitleRef = fm.cellLoc.TitleRef,
+															ValueRef = fm.cellLoc.ValueRef
+														} 
+													};
+
+													MatchField(tcs, nfm, sheetLayout, stringTable, formats, agMaps);
+													if (nfm.field != null)
+														nfms.Add(nfm);
+
+													break;
+
+												case CellDataLayout.lookup:
+													var nfld1 = sheetLayout.wsLayout.fields.Where(f => f.fldType == FieldType.cell);
+													var nfld2 = nfld1.Where(f => f.titles != null);
+
+													var nfld = nfld2.FirstOrDefault(f => f.titles.Select(t => t.ToLower()).Contains(agv.lookupString.ToLower()));
+													
+													if (nfld != null)
+													{
+														nfm = new FieldCellMap
+														{
+															Title = agv.lookupString,
+															Value = cells[agv.aggregateIdx],
+															field = nfld,
+															versMap = fm.versMap,
+															cellLoc = new CellLocation
+															{
+																dataLayout = CellDataLayout.separate,
+																TitleRef = fm.cellLoc.TitleRef,
+																ValueRef = fm.cellLoc.ValueRef
+															}
+														};
+
+														nfms.Add(nfm);
+													}
+													break;
+											}
+										}
+
+										if(nfms.Count == fm.cellLoc.cellMaps.Count())
+										{
+											agMaps.AddRange(nfms);
+											foundFld = true;
+											break;
+										}
+									}
+								}
+							}
+							break;
+					}
+				}
+				catch (Exception ex)
+				{
+					Log.New.Msg(ex);
+				}
+
+			}
+			return foundFld;
+		}
+
+		private bool MatchCombinedField(Field fld, FieldCellMap fm)
+		{
+			var titles = fld.titles.Select(t => t.ToLower()).Where(t =>
+			{
+				bool hasTitle = fm.Title.StartsWith(t);
+				return hasTitle;
+			});
+
+			if (titles.Count() > 0)
+			{
+				fm.field = fld;
+				var title = titles.FirstOrDefault();
+				if (fm.Value != null && fm.Value.Length > titles.FirstOrDefault().Length)
+					fm.Value = fm.Value != null ? fm.Value.Substring(title.Length, fm.Value.Length - title.Length).Trim() : null;
+
+				if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
+				{
+					var val = fm.Value.Replace("(", "").Replace(")", "").Replace(":", "");
+					if (val.Contains("Through"))
+						val = val.Substring(0, val.IndexOf("Through", StringComparison.OrdinalIgnoreCase));
+					DateTime outVal;
+					if (DateTime.TryParse(val, out outVal))
+					{
+						if (fld.DataFormat == DataFormatType.Date)
+							fm.Value = outVal.ToShortDateString();
+						else
+							fm.Value = outVal.ToString();
+					}
+					else
+						fm.Value = null;
+				}
+				return true;
+			}
+
+			return false;
+		}
+
+		private bool MatchSeparatedField(IEnumerable<Cell> tcs, Field fld, FieldCellMap fm, SharedStringTablePart stringTable, CellFormats formats)
+		{
+			if (fm.Title != null && fld.titles.Select(t => t.ToLower()).Contains(fm.Title))
+			{
+				fm.field = fld;
+
+				if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
+				{
+					var cell = tcs.Where(c => c.CellReference == fm.cellLoc.ValueRef).FirstOrDefault();
+					fm.Value = Spreadsheet.GetCellValue(cell, stringTable.SharedStringTable, formats, fld);
+				}
+
+				return true;
+			}
+
+			return false;
 		}
 	}
 
@@ -688,6 +807,7 @@ namespace Read_XLSX
 		public int FirstRow { get; set; }
 	}
 
+
 	/// <summary>
 	/// Location of data column title cells
 	/// </summary>
@@ -696,6 +816,8 @@ namespace Read_XLSX
 		public int col { get; set; }
 
 		public List<string> cellRefs { get; set; }
+
+		public bool isGroupData { get; set; }
 	}
 
 	public enum FieldType
@@ -711,10 +833,19 @@ namespace Read_XLSX
 		byRelated
 	}
 
+	public enum RowType
+	{
+		RowData,
+		GroupData // Match with fields that match col data for columns with cell title locations that have isGroupData = true
+	}
+
 	class Field
 	{
 		public FieldType fldType { get; set; }
+
 		public LocateType locType { get; set; }
+
+		public RowType rowType { get; set; }
 
 		public string Name { get; set; }
 
@@ -740,6 +871,24 @@ namespace Read_XLSX
 		public List<CellLocation> cellLocations { get; set; }
 	}
 
+	public enum CellDataLayout
+	{
+		separate,
+		combined,
+		aggregate,
+		lookup,
+	}
+
+	class AggregateFieldCellMap
+	{
+		public int aggregateIdx { get; set; }
+
+		public CellDataLayout dataLayout { get; set; }
+
+		public string lookupString { get; set; }
+
+	}
+
 	/// <summary>
 	/// Location of a data field cell title and value.
 	/// </summary>
@@ -747,7 +896,15 @@ namespace Read_XLSX
 	{
 		public string TitleRef { get; set; }
 		public string ValueRef { get; set; }
-		public bool isCombined { get; set; }
+
+		public CellDataLayout dataLayout { get; set; }
+		public int aggregateCellCnt { get; set; }
+		public string aggregateCellSeparator { get; set; }
+
+		public List<AggregateFieldCellMap> cellMaps { get; set; }
+
+//		public CellLayoutVersion cellLayoutVersion { get; set; }
+
 	}
 
 	class FieldColumnMap
@@ -797,6 +954,8 @@ namespace Read_XLSX
 		public CellLocation cellLoc { get; set; }
 
 		public Field field { get; set; }
+
+		public FieldCellVersionMap versMap { get; set; }
 	}
 
 	class SheetLayoutMap
