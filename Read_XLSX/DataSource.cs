@@ -517,7 +517,7 @@ namespace Read_XLSX
 			}
 
 			// Find the best acceptable layout match.
-			var fldLayout_v = md.fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).FirstOrDefault();
+			var fldLayout_v = md.fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).OrderByDescending(fl => fl.fldmaps.Count()).FirstOrDefault();
 
 			md.fldCellMap = sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
 
@@ -818,6 +818,8 @@ namespace Read_XLSX
 		public List<string> cellRefs { get; set; }
 
 		public bool isGroupData { get; set; }
+
+		public CellDataLayout dataLayout { get; set; }
 	}
 
 	public enum FieldType
@@ -860,6 +862,8 @@ namespace Read_XLSX
 		public List<Tuple<string, string>> postProcRegex { get; set; }
 
 		public List<string> titles { get; set; }
+
+		public List<string> ignore { get; set; }
 	}
 
 	/// <summary>

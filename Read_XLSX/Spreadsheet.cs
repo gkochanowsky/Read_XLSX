@@ -28,7 +28,16 @@ namespace Read_XLSX
 		public string CellReference { get; set; }
 		public string Value { get; set; }
 		public int rowNumber { get; set; }
+		public int colNumber { get; set; }
 		public DataRow Row { get; set; }
+	}
+
+	class GroupCellValue
+	{
+		public DataCellValue cell { get; set; }
+		public string grpValue { get; set; }
+		public int row { get; set; }
+		public Field field { get; set; }
 	}
 
 	class DataRow
@@ -134,12 +143,78 @@ namespace Read_XLSX
 			return dr;
 		}
 
-		public void DropRows()
+		public void ProcessRows()
 		{
 			if (Rows == null) return;
 
+			// Drop cells in ignore lists
+			var ignflds = wsLayout.fields.Where(f => f.ignore != null && f.ignore.Count() > 0);
+
+			var ignCells = Rows.SelectMany(r => r.Value.Cells.Where(ce => ignflds.Contains(ce.Value.field)).Select(ce => ce.Value));
+			ignCells = ignCells.Where(ce => ce.field.ignore.Select(ig => ig.ToLower().Trim()).Contains(ce.Value.Trim().ToLower()));
+			ignCells.ToList().ForEach(igc =>
+			{
+				igc.Row.Cells.Remove(igc.field.OutputOrder);
+			});
+
+			// locate any group rows.
+			var grpCols = wsLayout.fieldColMap.colLayout.titleLocations.Where(tl => tl.isGroupData).Select(tl => tl.col).ToList();
+
+			List<GroupCellValue> grpCells = new List<GroupCellValue>();
+
+			if (grpCols.Count() > 0)
+			{
+				var flds = wsLayout.fields.Where(f => f.rowType == RowType.GroupData);
+
+				var grpRows = Rows.Where(rw => rw.Value.Cells.Any(c => grpCols.Contains(c.Value.colNumber) && rw.Value.Cells.Count() == 1));
+
+				// Find and map group rows to grp fields.
+				foreach (var r in grpRows)
+				{
+					foreach (var c in r.Value.Cells)
+					{
+						foreach (var f in flds)
+						{
+							GroupCellValue grpCell = null;
+
+							foreach (var t in f.titles)
+							{
+								if (c.Value.Value.ToLower().StartsWith(t.ToLower()))
+								{
+									grpCell = new GroupCellValue { cell = c.Value, grpValue = c.Value.Value.Substring(t.Length).Trim(), row = c.Value.rowNumber, field = f };
+									break;
+								}
+							}
+
+							if (grpCell != null)
+							{
+								grpCells.Add(grpCell);
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			// Drop rows with insufficient required fields.
 			var drop = Rows.Where(r => !r.Value.HasRequiredCol(RequiredCols));
 			drop.ToList().ForEach(d => Rows.Remove(d.Key));
+
+			// Add groups to remaining non-group rows.
+			foreach(var gc in grpCells)
+			{
+				int currIdx = grpCells.IndexOf(gc);
+				int lastRow = currIdx + 1 < grpCells.Count() ? grpCells[currIdx + 1].row : Rows.Max(w => w.Key) + 1;
+
+				Rows
+					.Where(r => r.Key > gc.row && r.Key < lastRow)
+					.ToList()
+					.ForEach(r =>
+					{
+						int nxt = r.Value.Cells.Max(c => c.Key);
+						r.Value.Cells.Add(nxt + 1, new DataCellValue { Value = gc.grpValue, CellReference = gc.cell.CellReference, field = gc.field, Row = r.Value, rowNumber = r.Key, colNumber = nxt });
+					});
+			}
 		}
 
 		public int RecCount()
@@ -244,7 +319,7 @@ namespace Read_XLSX
 						{
 							sheetLayout.dataSet = new DataSet(sheetLayout.wsLayout);
 							ProcessCells(sheetLayout, sht.WorksheetPart);
-							sheetLayout.dataSet.DropRows();
+							sheetLayout.dataSet.ProcessRows();
 						}
 					}
 
@@ -297,7 +372,7 @@ namespace Read_XLSX
 				try
 				{
 					string sval = GetCellValue(tc.cell, stringTable.SharedStringTable, cellFormats, cols[tc.col]);
-					var dataCell = new DataCellValue { CellReference = tc.cell.CellReference.InnerText, rowNumber = tc.row, field = cols[tc.col], Value = sval };
+					var dataCell = new DataCellValue { CellReference = tc.cell.CellReference.InnerText, rowNumber = tc.row, colNumber = tc.col, field = cols[tc.col], Value = sval };
 					sLayout.dataSet.AddCell(dataCell);
 				}
 				catch (Exception ex)
