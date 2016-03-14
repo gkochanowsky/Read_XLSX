@@ -2261,17 +2261,21 @@ namespace Read_XLSX
 						titles = new List<string>
 						{
 							"NAME OF MANAGED CARE PLAN:",
-							"Managed Care Plan ID:",
 							"Monthly PDO Report",
+							"Managed Care Plan Name:",
 						}
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 14, Name = "Date", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.cell, OutputOrder = 14, Name = "MC_PlanID", DataFormat = DataFormatType.String,
+						titles = new List<string> { "Managed Care Plan ID:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 15, Name = "Date", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "Reporting Month (MM/DD/YYYY):", "Month", "From" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 15, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Region", DataFormat = DataFormatType.String, rowType = RowType.GroupData,
 						titles = new List<string> { "REGION" }
-					}
+					},
+					new Field { fldType = FieldType.fileName, OutputOrder = 17, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
+
 				}
 			};
 
@@ -3287,177 +3291,177 @@ namespace Read_XLSX
 			// Create list of data source types.
 			dst.types = new List<SpreadSheetLayout>
 			{
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
-				//	procType = ProcessType.MatchAllDataWorkSheets,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { Names = new List<string> { "Instructions" } },
-				//		new SheetLayout { Names = new List<string> { "Codes" } },
-				//		new SheetLayout { Names = new List<string> { "January" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "February" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "March" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "April" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "May" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "June" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "July" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "August" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "September" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "October" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "November" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "December" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "Summary" } },
-				//		new SheetLayout { Names = new List<string> { "October 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "November 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
-				//		new SheetLayout { Names = new List<string> { "December 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Enrollee Complaints, Grievances and Appeals Report (0127)",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Instructions" } },
+						new SheetLayout { Names = new List<string> { "Codes" } },
+						new SheetLayout { Names = new List<string> { "January" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "February" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "March" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "April" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "May" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "June" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "July" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "August" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "September" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "October" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "November" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "December" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "Summary" } },
+						new SheetLayout { Names = new List<string> { "October 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "November 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "December 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Enrollee Roster and Facility Residence Report (0129)",
-				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_erfr }
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Enrollee Roster and Facility Residence Report (0129)",
+					procType = ProcessType.MatchByClosestWorkSheetLayout,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_erfr }
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Managed Care Missed Services Report",
-				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mcms }
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Managed Care Missed Services Report",
+					procType = ProcessType.MatchByClosestWorkSheetLayout,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mcms }
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Nursing Facility Transfer Report",
-				//	procType = ProcessType.MatchAllDataWorkSheets,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout
-				//		{
-				//			Names = new List<string>
-				//			{
-				//				"Nursing Facility to Community",
-				//				"Nursing Facility_to Community",
-				//				"Nursing Faclity To Community",
-				//			},
-				//			sheetType = SheetType.SourceData,
-				//			wsLayout = wsLayout_nftr_to_comm
-				//		},
-				//		new SheetLayout
-				//		{
-				//			Names = new List<string>
-				//			{
-				//				"Community to Nursing Facility",
-				//				"Community_to_NursingFacility",
-				//				"Community To Nursing Faclity",
-				//			},
-				//			sheetType = SheetType.SourceData,
-				//			wsLayout = wsLayout_nftr_to_nh
-				//		},
-				//		new SheetLayout
-				//		{
-				//			Names = new List<string>
-				//			{
-				//				"Sheet2",
-				//				"Sheet3",
-				//			},
-				//			isOptional = true
-				//		},
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Nursing Facility Transfer Report",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout
+						{
+							Names = new List<string>
+							{
+								"Nursing Facility to Community",
+								"Nursing Facility_to Community",
+								"Nursing Faclity To Community",
+							},
+							sheetType = SheetType.SourceData,
+							wsLayout = wsLayout_nftr_to_comm
+						},
+						new SheetLayout
+						{
+							Names = new List<string>
+							{
+								"Community to Nursing Facility",
+								"Community_to_NursingFacility",
+								"Community To Nursing Faclity",
+							},
+							sheetType = SheetType.SourceData,
+							wsLayout = wsLayout_nftr_to_nh
+						},
+						new SheetLayout
+						{
+							Names = new List<string>
+							{
+								"Sheet2",
+								"Sheet3",
+							},
+							isOptional = true
+						},
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Community Outreach v1",
-				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co },
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Community Outreach v1",
+					procType = ProcessType.MatchByClosestWorkSheetLayout,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co },
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Community Outreach v2",
-				//	procType = ProcessType.MatchAllDataWorkSheets,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout
-				//		{
-				//			Names = new List<string>
-				//			{
-				//				"Info Sheet",
-				//				"Plan Info Sheet"
-				//			},
-				//			sheetType = SheetType.CommonData,
-				//			wsLayout = wsLayout_co_info
-				//		},
-				//		new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event },
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Community Outreach v2",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout
+						{
+							Names = new List<string>
+							{
+								"Info Sheet",
+								"Plan Info Sheet"
+							},
+							sheetType = SheetType.CommonData,
+							wsLayout = wsLayout_co_info
+						},
+						new SheetLayout { Names = new List<string> { "Event Info" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event },
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Community Outreach Representative",
-				//	procType = ProcessType.MatchAllDataWorkSheets,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { Names = new List<string> { "Instructions" }, isOptional = true },
-				//		new SheetLayout { Names = new List<string> { "Jurat" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_cor_jurat },
-				//		new SheetLayout { Names = new List<string> { "Representative Activity" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cor_activity },
-				//		new SheetLayout { Names = new List<string> {  "Sheet1", "Sheet3" }, isOptional = true }
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Community Outreach Representative",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Instructions" }, isOptional = true },
+						new SheetLayout { Names = new List<string> { "Jurat" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_cor_jurat },
+						new SheetLayout { Names = new List<string> { "Representative Activity" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_cor_activity },
+						new SheetLayout { Names = new List<string> {  "Sheet1", "Sheet3" }, isOptional = true }
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Marketing/Public/Educational Events",
-				//	procType = ProcessType.MatchAllDataWorkSheets,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { Names = new List<string> { "Instructions-Definitions" }, isOptional = true },
-				//		new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
-				//		new SheetLayout { Names = new List<string> { "Monthly Events Report" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events }
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Marketing/Public/Educational Events",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Instructions-Definitions" }, isOptional = true },
+						new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
+						new SheetLayout { Names = new List<string> { "Monthly Events Report" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events }
+					}
+				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Marketing/Public/Educational Events and Community Outreach",
-				//	procType = ProcessType.MatchAllDataWorkSheets,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
-				//		new SheetLayout { Names = new List<string> { "Marketing Events" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events },
-				//		new SheetLayout
-				//		{
-				//			Names = new List<string>
-				//			{
-				//				"Community Outreach Events",
-				//				"Education Comm Outreach Events",
-				//			},
-				//			sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event
-				//		},
-				//		new SheetLayout { Names = new List<string> { "Sheet1" }, isOptional = true }
-				//	}
-				//},
+				new SpreadSheetLayout
+				{
+					Name = "Marketing/Public/Educational Events and Community Outreach",
+					procType = ProcessType.MatchAllDataWorkSheets,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { Names = new List<string> { "Plan Info Sheet" }, sheetType = SheetType.CommonData, wsLayout = wsLayout_me_info },
+						new SheetLayout { Names = new List<string> { "Marketing Events" }, sheetType = SheetType.SourceData, wsLayout = wsLayout_me_events },
+						new SheetLayout
+						{
+							Names = new List<string>
+							{
+								"Community Outreach Events",
+								"Education Comm Outreach Events",
+							},
+							sheetType = SheetType.SourceData, wsLayout = wsLayout_co_Event
+						},
+						new SheetLayout { Names = new List<string> { "Sheet1" }, isOptional = true }
+					}
+				},
 
 				new SpreadSheetLayout
 				{
@@ -3470,31 +3474,20 @@ namespace Read_XLSX
 					}
 				},
 
-				//new SpreadSheetLayout
-				//{
-				//	Name = "Managed Care Case Management File Audit",
-				//	procType = ProcessType.MatchByClosestWorkSheetLayout,
-				//	types = dst,
-				//	sLayouts = new List<SheetLayout>
-				//	{
-				//		new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mccma }
-				//	}
-				//}
+				new SpreadSheetLayout
+				{
+					Name = "Managed Care Case Management File Audit",
+					procType = ProcessType.MatchByClosestWorkSheetLayout,
+					types = dst,
+					sLayouts = new List<SheetLayout>
+					{
+						new SheetLayout { sheetType = SheetType.SourceData, wsLayout = wsLayout_mccma }
+					}
+				}
 
 			};
 
 			dst.types.ForEach(ssl => ssl.sLayouts.ForEach(sl => sl.ssLayout = ssl));
-			//dst.types.
-			//	ForEach(ssl => ssl.sLayouts.
-			//		ForEach(sl => sl.wsLayout.cellLayouts.
-			//			ForEach(cl => cl.cellLocations.
-			//				ForEach(c => 
-			//				{
-			//					c.cellLayoutVersion = cl;
-			//				})
-			//			)
-			//		)
-			//	);
 
 			return dst.types;
 		}

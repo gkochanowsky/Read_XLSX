@@ -486,6 +486,15 @@ namespace Read_XLSX
 						var dt = DateTime.FromOADate(double.Parse(c.CellValue.InnerText));
 						sval = dt.ToString();
 						break;
+					case DataFormatType.DateMixed:
+						double aoDate;
+						if (double.TryParse(c.CellValue.InnerText, out aoDate))
+						{
+							var aodt = DateTime.FromOADate(aoDate);
+							if ((DateTime.Now - aodt).Days < 3650)
+								sval = aodt.ToString("MM/dd/yy");
+						}
+						break;
 				}
 			}
 

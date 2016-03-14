@@ -20,8 +20,7 @@ namespace Read_XLSX
 		{
 			//			var tst = Spreadsheet.GetCellRef(7, 28);
 
-			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_pdo";
-
+						string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_pdo";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_mccma";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_me";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_cor";
@@ -29,7 +28,7 @@ namespace Read_XLSX
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_ntf";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_erfr\";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_cga\";
-			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test\";
+//						string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_roster\";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Community Outreach Health FairsPublic Events Notification (0113)";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Enrollee Roster and Facility Residence Report (0129)";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\From Houser - Copy\Missed Services Report (0131)";

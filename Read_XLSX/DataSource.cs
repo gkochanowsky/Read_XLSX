@@ -513,11 +513,16 @@ namespace Read_XLSX
 				flvv.noneNullTitleCnt = flvv.fldmaps.Where(fm => !string.IsNullOrWhiteSpace(fm.Title)).Count();
 				flvv.noMatchCnt = flvv.fldmaps.Where(fm => fm.field == null).Count();
 				flvv.missingReqFldCnt = reqFlds.Where(rf => !flvv.fldmaps.Select(fm => fm.field).Contains(rf)).Count();
-				flvv.noValCnt = flvv.fldmaps.Where(fm => fm.field != null && fm.field.isRequired && string.IsNullOrWhiteSpace(fm.Value)).Count();
+				flvv.noReqValCnt = flvv.fldmaps.Where(fm => fm.field != null && fm.field.isRequired && string.IsNullOrWhiteSpace(fm.Value)).Count();
+				flvv.noValCnt = flvv.fldmaps.Where(fm => fm.field != null && string.IsNullOrWhiteSpace(fm.Value)).Count();
 			}
 
 			// Find the best acceptable layout match.
-			var fldLayout_v = md.fldCellVersMaps.Where(fl => fl.noMatchCnt == 0 && fl.noValCnt == 0 && fl.missingReqFldCnt == 0).OrderByDescending(fl => fl.fldmaps.Count()).FirstOrDefault();
+			var fldLayout_v = md.fldCellVersMaps
+									.Where(fl => fl.noMatchCnt == 0 && fl.noReqValCnt == 0 && fl.missingReqFldCnt == 0)
+									.OrderByDescending(fl => fl.fldmaps.Count())
+									.OrderBy(fl => fl.noValCnt)
+									.FirstOrDefault();
 
 			md.fldCellMap = sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
 
@@ -621,6 +626,8 @@ namespace Read_XLSX
 							}
 							break;
 					}
+
+
 				}
 				catch (Exception ex)
 				{
@@ -643,8 +650,8 @@ namespace Read_XLSX
 			{
 				fm.field = fld;
 				var title = titles.FirstOrDefault();
-				if (fm.Value != null && fm.Value.Length > titles.FirstOrDefault().Length)
-					fm.Value = fm.Value != null ? fm.Value.Substring(title.Length, fm.Value.Length - title.Length).Trim() : null;
+				if (fm.Value != null && fm.Value.Length >= titles.FirstOrDefault().Length)
+					fm.Value = fm.Value != null ? fm.Value.Substring(title.Length).Trim() : null;
 
 				if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
 				{
@@ -662,6 +669,10 @@ namespace Read_XLSX
 					else
 						fm.Value = null;
 				}
+
+				if (string.IsNullOrWhiteSpace(fm.Value))
+					fm.Value = null;
+
 				return true;
 			}
 
@@ -674,7 +685,7 @@ namespace Read_XLSX
 			{
 				fm.field = fld;
 
-				if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
+				if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime || fld.DataFormat == DataFormatType.DateMixed)
 				{
 					var cell = tcs.Where(c => c.CellReference == fm.cellLoc.ValueRef).FirstOrDefault();
 					fm.Value = Spreadsheet.GetCellValue(cell, stringTable.SharedStringTable, formats, fld);
@@ -741,7 +752,8 @@ namespace Read_XLSX
 	{
 		String = 1,
 		DateTime,
-		Date
+		Date,
+		DateMixed,
 	}
 
 	public enum LayoutType
@@ -944,6 +956,7 @@ namespace Read_XLSX
 		public CellLayoutVersion fldLayout { get; set; }
 		public List<FieldCellMap> fldmaps { get; set; }
 		public int noMatchCnt { get; set; }
+		public int noReqValCnt { get; set; }
 		public int noValCnt { get; set; }
 		public int missingReqFldCnt { get; set; }
 		public int noneNullTitleCnt { get; set; }
