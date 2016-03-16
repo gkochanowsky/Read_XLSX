@@ -1167,6 +1167,16 @@ namespace Read_XLSX
 							new CellLocation { TitleRef = "A6", ValueRef = "D6" },
 						}
 					},
+					new CellLayoutVersion
+					{
+						Version = 8,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A4", ValueRef = "B4", dataLayout = CellDataLayout.separate },
+							new CellLocation { TitleRef = "A5", ValueRef = "A5", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A6", ValueRef = "B6", dataLayout = CellDataLayout.separate }
+						}
+					}
 				},
 
 				colLayouts = new List<ColumnLayoutVersion>
@@ -1582,10 +1592,11 @@ namespace Read_XLSX
 							"Plan Name",
 						}
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 2, Name = "Month", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.cell, OutputOrder = 2, Name = "Month", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "For the quarter ending:" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 3, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 4, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
 				}
 			};
 
@@ -1669,10 +1680,10 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 7, Name = "Licence_Cert_Num", DataFormat = DataFormatType.String,
 						titles = new List<string> { "LIC / CERT NUMBER (use NA if not applicable)" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "Licence_Cert_Issue_Date", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 8, Name = "Licence_Cert_Issue_Date", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "LIC / CERT ISSUE DATE (use NA if not applicable)" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "Licence_Cert_End_Date", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "Licence_Cert_End_Date", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "LIC / CERT END DATE (use NA if not applicable)" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 10, Name = "Licence_Cert_Issuer", DataFormat = DataFormatType.String,
@@ -2275,7 +2286,6 @@ namespace Read_XLSX
 						titles = new List<string> { "REGION" }
 					},
 					new Field { fldType = FieldType.fileName, OutputOrder = 17, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
-
 				}
 			};
 
@@ -2300,6 +2310,36 @@ namespace Read_XLSX
 							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined }
 						}
 					},
+					new CellLayoutVersion
+					{
+						Version = 2,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A2", ValueRef = "F2", dataLayout = CellDataLayout.separate },
+							new CellLocation { TitleRef = "A3", ValueRef = "C3", dataLayout = CellDataLayout.separate },
+							new CellLocation { TitleRef = "A4", ValueRef = "C4", dataLayout = CellDataLayout.separate }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 3,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A2", ValueRef = "E2", dataLayout = CellDataLayout.separate },
+							new CellLocation { TitleRef = "A3", ValueRef = "A3", dataLayout = CellDataLayout.combined },
+							new CellLocation { TitleRef = "A4", ValueRef = "A4", dataLayout = CellDataLayout.combined }
+						}
+					},
+					new CellLayoutVersion
+					{
+						Version = 4,
+						cellLocations = new List<CellLocation>
+						{
+							new CellLocation { TitleRef = "A2", ValueRef = "B2", dataLayout = CellDataLayout.separate },
+							new CellLocation { TitleRef = "A3", ValueRef = "B3", dataLayout = CellDataLayout.separate },
+							new CellLocation { TitleRef = "A4", ValueRef = "B4", dataLayout = CellDataLayout.separate }
+						}
+					}
 				},
 
 				verifyFirstRowData = true,
@@ -3270,7 +3310,7 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 50, Name = "TimelyAnnualAssesment", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Was the annual assessment completed timely? (no more than 60 days before the LOC date and no less than 30 days before the LOC date)" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 51, Name = "MC_PlanName", DataFormat = DataFormatType.String, isRequired = true,
+					new Field { fldType = FieldType.cell, OutputOrder = 51, Name = "MC_PlanName", DataFormat = DataFormatType.String,
 						titles = new List<string>
 						{
 							"LTC Managed Care Contractor:",
@@ -3316,6 +3356,7 @@ namespace Read_XLSX
 						new SheetLayout { Names = new List<string> { "October 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
 						new SheetLayout { Names = new List<string> { "November 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
 						new SheetLayout { Names = new List<string> { "December 2014" }, sheetType = SheetType.SourceData, isOptional = true, wsLayout = wsLayout_cga },
+						new SheetLayout { Names = new List<string> { "Sheet1" }, isOptional = true }
 					}
 				},
 
@@ -3374,6 +3415,7 @@ namespace Read_XLSX
 						{
 							Names = new List<string>
 							{
+								"Sheet1",
 								"Sheet2",
 								"Sheet3",
 							},

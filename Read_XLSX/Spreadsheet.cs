@@ -249,7 +249,7 @@ namespace Read_XLSX
 				isFirst = false;
 			}
 
-			var fldtypes = new List<FieldType> { FieldType.cell, FieldType.fileName };
+			var fldtypes = new List<FieldType> { FieldType.cell, FieldType.fileName, FieldType.filePath };
 			ssl.sLayouts.Where(sl => sl.sheetType == SheetType.CommonData).ToList().ForEach(sl =>
 			{
 				sl.wsLayout.fields.OrderBy(f => f.OutputOrder).Where(f => fldtypes.Contains(f.fldType)).ToList().ForEach(f =>
@@ -491,7 +491,7 @@ namespace Read_XLSX
 						if (double.TryParse(c.CellValue.InnerText, out aoDate))
 						{
 							var aodt = DateTime.FromOADate(aoDate);
-							if ((DateTime.Now - aodt).Days < 3650)
+							if ((DateTime.Now - aodt).Days < 36500)
 								sval = aodt.ToString("MM/dd/yy");
 						}
 						break;

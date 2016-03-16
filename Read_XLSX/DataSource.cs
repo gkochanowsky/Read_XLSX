@@ -156,8 +156,12 @@ namespace Read_XLSX
 				var req = sl.sLayouts.Where(slt => !slt.isOptional);
 				var mapped = matches.Where(mp => mp.layout != null).Select(mp => mp.layout);
 				var missed = req.Where(r => !mapped.Contains(r));
+				var nullLayts = matches.Where(mp => mp.layout == null);
 
-				if (matches.Where(m => m.layout == null).Count() == 0 && missed.Count() == 0)
+				var missedCnt = missed.Count();
+				var nullLaytsCnt = nullLayts.Count();
+
+				if (nullLaytsCnt == 0 && missedCnt == 0)
 					procTypes.Add(sl);
 			}
 
@@ -503,10 +507,17 @@ namespace Read_XLSX
 				flvv.fldmaps = flvv.fldmaps.Where(fm => fm.cellLoc != null && fmts.Contains(fm.cellLoc.dataLayout)).ToList();
 
 				// Add a filename layout if the field exists.
-				var fileFld = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.fileName);
-				if (fileFld != null)
+				var fileName = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.fileName);
+				if (fileName != null)
 				{
-					flvv.fldmaps.Add(new FieldCellMap { Title = FieldType.fileName.ToString(), field = fileFld, Value = file.FullName });
+					flvv.fldmaps.Add(new FieldCellMap { Title = FieldType.fileName.ToString(), field = fileName, Value = file.Name });
+				}
+
+				// Add a filePath layout if the field exists.
+				var filePath = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.filePath);
+				if (filePath != null)
+				{
+					flvv.fldmaps.Add(new FieldCellMap { Title = FieldType.filePath.ToString(), field = filePath, Value = file.FullName });
 				}
 
 				// Compute how well the matching went.
@@ -839,6 +850,7 @@ namespace Read_XLSX
 		cell,
 		column,
 		fileName,
+		filePath,
 	}
 
 	public enum LocateType
