@@ -86,6 +86,7 @@ namespace Read_XLSX
 							break;
 						case FieldType.cell:
 						case FieldType.fileName:
+						case FieldType.filePath:
 							var df = this.Sheet.wsLayout.fieldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == d.OutputOrder);
 							val = (df != null ? df.Value ?? "" : "");
 							break;
@@ -466,7 +467,7 @@ namespace Read_XLSX
 						if (cellFormat != null && cellFormat.NumberFormatId != null && c.DataType == null)
 						{
 							var d = DateTime.FromOADate(double.Parse(pdt));
-							sval = d.ToString("MM/dd/yy");
+							sval = d.ToString("MM/dd/yyyy");
 						}
 						else
 						{
@@ -492,7 +493,7 @@ namespace Read_XLSX
 						{
 							var aodt = DateTime.FromOADate(aoDate);
 							if ((DateTime.Now - aodt).Days < 36500)
-								sval = aodt.ToString("MM/dd/yy");
+								sval = aodt.ToString("MM/dd/yyyy");
 						}
 						break;
 				}

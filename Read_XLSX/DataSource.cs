@@ -664,7 +664,7 @@ namespace Read_XLSX
 				if (fm.Value != null && fm.Value.Length >= titles.FirstOrDefault().Length)
 					fm.Value = fm.Value != null ? fm.Value.Substring(title.Length).Trim() : null;
 
-				if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime)
+				if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateTime || fld.DataFormat == DataFormatType.DateMixed)
 				{
 					var val = fm.Value.Replace("(", "").Replace(")", "").Replace(":", "");
 					if (val.Contains("Through"))
@@ -672,13 +672,13 @@ namespace Read_XLSX
 					DateTime outVal;
 					if (DateTime.TryParse(val, out outVal))
 					{
-						if (fld.DataFormat == DataFormatType.Date)
-							fm.Value = outVal.ToShortDateString();
+						if (fld.DataFormat == DataFormatType.Date || fld.DataFormat == DataFormatType.DateMixed)
+							fm.Value = outVal.ToString("MM/dd/yyyy");
 						else
 							fm.Value = outVal.ToString();
 					}
 					else
-						fm.Value = null;
+						fm.Value = fld.DataFormat == DataFormatType.DateMixed ? fm.Value : null;
 				}
 
 				if (string.IsNullOrWhiteSpace(fm.Value))

@@ -3324,7 +3324,8 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.cell, OutputOrder = 53, Name = "Date", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Date:" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 54, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.filePath, OutputOrder = 54, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.fileName, OutputOrder = 55, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true }
 				}
 			};
 
