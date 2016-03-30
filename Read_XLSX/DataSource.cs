@@ -191,7 +191,7 @@ namespace Read_XLSX
 								WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
 								var md = MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
-
+								sheetLayout.matchData = md;
 								isPass |= md.isPass;
 
 								mds.Add(md);

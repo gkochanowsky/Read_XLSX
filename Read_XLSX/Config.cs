@@ -615,7 +615,7 @@ namespace Read_XLSX
 							"Date of transition to SNF or Community",
 						}
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Form2515Date", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Form2515Date", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "Date the 2515 form was sent to DCF if transitioning (if applicable)" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 17, Name = "canLocate", DataFormat = DataFormatType.String,
