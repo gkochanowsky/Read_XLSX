@@ -164,10 +164,10 @@ namespace Read_XLSX
 
 				fields = new List<Field>
 				{
-					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "Region", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 1, Name = "Region", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string> { "Region # (1 - 11)" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "County", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 2, Name = "County", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string> { "County Name Within Region:" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 3, Name = "MedicaidID", DataFormat = DataFormatType.String, isRequired = true,
@@ -177,14 +177,14 @@ namespace Read_XLSX
 							"Recipient's Medicaid ID#",
 						}
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "LastName", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 4, Name = "LastName", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string>
 						{
 							"Recipient LastName:",
 							"Recipient Last Name",
 						}
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "FirstName", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 5, Name = "FirstName", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string>
 						{
 							"Recipient FirstName:",
@@ -224,46 +224,47 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DispositionNoticeDate", DataFormat = DataFormatType.Date,
 						titles = new List<string> { "Date Disposition Notice Sent" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 12, Name = "DispositionType", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "DispositionType", DataFormat = DataFormatType.String,
 						titles = new List<string>
 						{
 							"(1 - 12) Type ofDisposition",
 							"(1 - 11) Type of Dispostion",
 						}
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 13, Name = "DispositionStatus", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "DispositionStatus", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Disposition Status R=Resolved P=Pending" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 14, Name = "ExpiditedRequest", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "ExpiditedRequest", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Expedited Request Y=yes N=No" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "FileType", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "FileType", DataFormat = DataFormatType.String,
 						titles = new List<string> { "File Type: GM=Griev MMA AM=Appeal MMA GL=Griev LTC AL=Appeal LTC" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Originator", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 17, Name = "Originator", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Originator 1=Enrollee2 = Provider" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 17, Name = "ProviderNum", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 18, Name = "ProviderNum", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Plan's 9 digit Medicaid Provider #:" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "MedicalProviderNbrs", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "MedicalProviderNbrs", DataFormat = DataFormatType.String,
 						titles = new List<string>
 						{
 							"Medicaid Provider #:",
 							"Medicaid Provider ID#:"
 						}
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "CalendarYr", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.cell, OutputOrder = 20, Name = "CalendarYr", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Calendar Year:" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 20, Name = "PlanName", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.cell, OutputOrder = 21, Name = "PlanName", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Plan Name:" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 21, Name = "Month", DataFormat = DataFormatType.String, isRequired = true,
+					new Field { fldType = FieldType.cell, OutputOrder = 22, Name = "Month", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string> { "January", "February", "March", "April", "May", "June",
 													"July", "August", "September", "October", "November", "December" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 22, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.fileName, OutputOrder = 23, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 24, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				},
 			};
 
@@ -659,7 +660,8 @@ namespace Read_XLSX
 							"Reporting Month"
 						}
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 24, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 24, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 25, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
 				},
 			};
 
@@ -1392,10 +1394,11 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "Yr", DataFormat = DataFormatType.String,
 						titles = new List<string> { "2014", "2015", "2016" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "Month", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "Month", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "Reporting Month:" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 20, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 20, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 21, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
 				}
 			};
 
@@ -1443,10 +1446,11 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.cell, OutputOrder = 2, Name = "Yr", isRequired = true, DataFormat = DataFormatType.String,
 						titles = new List<string> { "Calendar Year:" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 3, Name = "Month", isRequired = true, DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.cell, OutputOrder = 3, Name = "Month", isRequired = true, DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "Reporting Month:" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 4, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				}
 			};
 
@@ -1755,7 +1759,8 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.cell, OutputOrder = 3, Name = "Yr", DataFormat = DataFormatType.String,
 						titles = new List<string> { "Calendar Year:" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 4, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				}
 			};
 

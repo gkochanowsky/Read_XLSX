@@ -80,30 +80,12 @@ namespace Read_XLSX
 						s.dataSet.Rows.Clear();
 						s.dataSet.Rows = null;
 					}
-					s.dataSet.wsLayout = null;
+					s.dataSet.sLayout.matchData = null;
+					s.dataSet.sLayout = null;
 					s.dataSet = null;
 				}
 
-				if (s.wsLayout != null)
-				{
-					if (s.wsLayout.fieldColMap != null)
-					{
-						if (s.wsLayout.fieldColMap.colmaps != null)
-						{
-							s.wsLayout.fieldColMap.colmaps.Clear();
-							s.wsLayout.fieldColMap.colmaps = null;
-						}
 
-						s.wsLayout.fieldColMap = null;
-					}
-
-					if (s.wsLayout.fieldCellMap != null)
-					{
-						s.wsLayout.fieldCellMap.fldmaps.Clear();
-						s.wsLayout.fieldCellMap.fldmaps = null;
-						s.wsLayout.fieldCellMap = null;
-					}
-				}
 			}));
 		}
 
@@ -188,6 +170,7 @@ namespace Read_XLSX
 							WorksheetPart wsp = wbp.GetPartById(sht.Id) as WorksheetPart;
 
 							var md = MatchLayouts(wsp.Worksheet, sheetLayout, stringTable, cellFormats, file);
+							sheetLayout.matchData = md;
 
 							mds.Add(md);
 
@@ -297,24 +280,31 @@ namespace Read_XLSX
 		/// </remarks>
 		public MatchData MatchLayouts(Worksheet ws, SheetLayout sheetLayout, SharedStringTablePart stringTable, CellFormats formats, FileInfo file)
 		{
-			var md = new MatchData();
+			MatchData md = new MatchData();
+			MatchData colMD = null;
+			MatchData cellMD = null;
+
 			// All cells in worksheet.
 			var tcs = ws.Descendants<Cell>();
 
 			switch (sheetLayout.wsLayout.layoutType)
 			{
 				case LayoutType.Both:
-					MatchColLayouts(md, tcs, sheetLayout, stringTable, formats, file);
-					MatchCellLayouts(md, tcs, sheetLayout, stringTable, formats, file);
-					md.isPass = sheetLayout.wsLayout.fieldCellMap != null && sheetLayout.wsLayout.fieldColMap != null;
+					colMD = MatchColLayouts(md, tcs, sheetLayout, stringTable, formats, file);
+					cellMD = MatchCellLayouts(md, tcs, sheetLayout, stringTable, formats, file);
+					md.fldCellMap = cellMD.fldCellMap;
+					md.fldColMap = colMD.fldColMap;
+					md.isPass = md.fldColMap != null && md.fldCellMap != null;
 					break;
 				case LayoutType.CellOnly:
-					MatchCellLayouts(md, tcs, sheetLayout, stringTable, formats, file);
-					md.isPass = sheetLayout.wsLayout.fieldCellMap != null;
+					cellMD = MatchCellLayouts(md, tcs, sheetLayout, stringTable, formats, file);
+					md.fldCellMap = cellMD.fldCellMap;
+					md.isPass =  md.fldCellMap != null;
 					break;
 				case LayoutType.ColumnOnly:
-					MatchColLayouts(md, tcs, sheetLayout, stringTable, formats, file);
-					md.isPass = sheetLayout.wsLayout.fieldColMap != null;
+					colMD = MatchColLayouts(md, tcs, sheetLayout, stringTable, formats, file);
+					md.fldColMap = colMD.fldColMap;
+					md.isPass = md.fldColMap != null;
 					break;
 			}
 
@@ -434,7 +424,7 @@ namespace Read_XLSX
 
 				fcvm.notNullTitleCnt = fcvm.colmaps.Where(cm => !string.IsNullOrWhiteSpace(cm.title)).Count();
 				fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
-				fcvm.ReqNoValCnt = fcvm.colmaps.Where(cm => cm.field != null && cm.field.isRequired && !cm.hasValue).Count();
+				fcvm.ReqNoValCnt = fcvm.colmaps.Where(cm => cm.field != null && sheetLayout.wsLayout.verifyFirstRowData && cm.field.isRequired && !cm.hasValue).Count();
 				fcvm.disOrder = (int)fcvm.colmaps.Where(dm => dm.field != null).Select(dm => Math.Pow((dm.field_order - dm.col_order), 2)).Sum();
 				var dupCols = fcvm.colmaps.Where(dm => dm.field != null).GroupBy(cd => cd.field).Where(d => d.Count() > 1);
 				fcvm.colDups = dupCols.Count();
@@ -443,7 +433,7 @@ namespace Read_XLSX
 			// Only match col layout versions with zero mismatch, favoring the version with the lowest disorder.
 			var colLayout_v = md.fldColVersMaps.Where(sv => sv.noMatchCnt == 0 && sv.colDups == 0 && (!sheetLayout.wsLayout.verifyFirstRowData || sv.ReqNoValCnt == 0)).OrderByDescending(sv => sv.notNullTitleCnt).ThenByDescending(sv => sv.disOrder).FirstOrDefault();
 
-			md.fldColMap = sheetLayout.wsLayout.fieldColMap = colLayout_v;
+			md.fldColMap = colLayout_v;
 
 			md.matchCnt += md.fldColMap != null ? 1 : 0;
 
@@ -535,7 +525,7 @@ namespace Read_XLSX
 									.OrderBy(fl => fl.noValCnt)
 									.FirstOrDefault();
 
-			md.fldCellMap = sheetLayout.wsLayout.fieldCellMap = fldLayout_v;
+			md.fldCellMap = fldLayout_v;
 
 			md.matchCnt += md.fldCellMap != null ? 1 : 0;
 
@@ -749,6 +739,7 @@ namespace Read_XLSX
 		public bool isOptional { get; set; }
 		public WorkSheetLayout wsLayout { get; set; }
 
+		public MatchData matchData { get; set; }
 		public DataSet dataSet { get; set; }
 
 		/// <summary>
@@ -809,8 +800,8 @@ namespace Read_XLSX
 		public List<Field> fields { get; set; }
 
 
-		public FieldCellVersionMap fieldCellMap { get; set; }
-		public FieldColumnVersionMap fieldColMap { get; set; }
+//		public FieldCellVersionMap fieldCellMap { get; set; }
+//		public FieldColumnVersionMap fieldColMap { get; set; }
 	}
 
 	public enum ColLayoutType

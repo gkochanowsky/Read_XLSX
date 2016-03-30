@@ -87,7 +87,7 @@ namespace Read_XLSX
 						case FieldType.cell:
 						case FieldType.fileName:
 						case FieldType.filePath:
-							var df = this.Sheet.wsLayout.fieldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == d.OutputOrder);
+							var df = this.Sheet.sLayout.matchData.fldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == d.OutputOrder);
 							val = (df != null ? df.Value ?? "" : "");
 							break;
 					}
@@ -103,7 +103,7 @@ namespace Read_XLSX
 
 			ssl.sLayouts.Where(sl => sl.sheetType == SheetType.CommonData).ToList().ForEach(sl =>
 			{
-				sl.wsLayout.fieldCellMap.fldmaps.OrderBy(fm => fm.field.OutputOrder).ToList().ForEach(fm =>
+				sl.matchData.fldCellMap.fldmaps.OrderBy(fm => fm.field.OutputOrder).ToList().ForEach(fm =>
 				{
 					sb.Append(delim);
 					sb.Append(fm.Value ?? "");
@@ -120,12 +120,12 @@ namespace Read_XLSX
 //		public List<FieldCellMap> CellData { get; set; }
 		public Dictionary<int, DataRow> Rows { get; set; }
 		private List<int> RequiredCols { get; set; }
-		public WorkSheetLayout wsLayout { get; set; }
+		public SheetLayout sLayout { get; set; }
 
-		public DataSet(WorkSheetLayout layout)
+		public DataSet(SheetLayout layout)
 		{
-			wsLayout = layout;
-			RequiredCols = layout.fields.Where(c => c.isRequired && c.fldType == FieldType.column).Select(c => c.OutputOrder).ToList();
+			sLayout = layout;
+			RequiredCols = sLayout.wsLayout.fields.Where(c => c.isRequired && c.fldType == FieldType.column).Select(c => c.OutputOrder).ToList();
 		}
 
 		public DataRow AddCell(DataCellValue dc)
@@ -149,7 +149,7 @@ namespace Read_XLSX
 			if (Rows == null) return;
 
 			// Drop cells in ignore lists
-			var ignflds = wsLayout.fields.Where(f => f.ignore != null && f.ignore.Count() > 0);
+			var ignflds = sLayout.wsLayout.fields.Where(f => f.ignore != null && f.ignore.Count() > 0);
 
 			var ignCells = Rows.SelectMany(r => r.Value.Cells.Where(ce => ignflds.Contains(ce.Value.field)).Select(ce => ce.Value));
 			ignCells = ignCells.Where(ce => ce.field.ignore.Select(ig => ig.ToLower().Trim()).Contains(ce.Value.Trim().ToLower()));
@@ -159,13 +159,13 @@ namespace Read_XLSX
 			});
 
 			// locate any group rows.
-			var grpCols = wsLayout.fieldColMap.colLayout.titleLocations.Where(tl => tl.isGroupData).Select(tl => tl.col).ToList();
+			var grpCols = sLayout.matchData.fldColMap.colLayout.titleLocations.Where(tl => tl.isGroupData).Select(tl => tl.col).ToList();
 
 			List<GroupCellValue> grpCells = new List<GroupCellValue>();
 
 			if (grpCols.Count() > 0)
 			{
-				var flds = wsLayout.fields.Where(f => f.rowType == RowType.GroupData);
+				var flds = sLayout.wsLayout.fields.Where(f => f.rowType == RowType.GroupData);
 
 				var grpRows = Rows.Where(rw => rw.Value.Cells.Any(c => grpCols.Contains(c.Value.colNumber) && rw.Value.Cells.Count() == 1));
 
@@ -229,7 +229,7 @@ namespace Read_XLSX
 		{
 			Rows.ToList().ForEach(r => 
 			{
-				r.Value.DelimitedRow(sb, wsLayout.fields, fldDelimiter, ssl);
+				r.Value.DelimitedRow(sb, sLayout.wsLayout.fields, fldDelimiter, ssl);
 				sb.Append(rowDelimiter);
 			});
 
@@ -240,7 +240,7 @@ namespace Read_XLSX
 		public string GetColumnHeaders(StringBuilder sb, string fldDelimiter, string rowDelimieter, SpreadSheetLayout ssl)
 		{
 			bool isFirst = true;
-			foreach (var c in wsLayout.fields)
+			foreach (var c in sLayout.wsLayout.fields)
 			{
 				if (!isFirst)
 					sb.Append(fldDelimiter);
@@ -268,15 +268,15 @@ namespace Read_XLSX
 		{
 			if (Rows == null) return;
 
-			string fn = $"{wsLayout.OutputFileName}_{wsLayout.dst.timeStamp.ToString("yyyyMMdd_HHmmss")}.txt";
+			string fn = $"{sLayout.wsLayout.OutputFileName}_{sLayout.wsLayout.dst.timeStamp.ToString("yyyyMMdd_HHmmss")}.txt";
 
-			string fp = Path.Combine(wsLayout.dst.RootFolder, fn);
+			string fp = Path.Combine(sLayout.wsLayout.dst.RootFolder, fn);
 			StringBuilder sb = new StringBuilder();
 
 			if (!File.Exists(fp))
-				this.GetColumnHeaders(sb, wsLayout.fldDelim, wsLayout.recDelim, ssl);
+				this.GetColumnHeaders(sb, sLayout.wsLayout.fldDelim, sLayout.wsLayout.recDelim, ssl);
 
-			this.GetDelimitedRows(sb, wsLayout.fldDelim, wsLayout.recDelim, ssl);
+			this.GetDelimitedRows(sb, sLayout.wsLayout.fldDelim, sLayout.wsLayout.recDelim, ssl);
 
 			File.AppendAllText(fp, sb.ToString());
 		}
@@ -318,7 +318,7 @@ namespace Read_XLSX
 					{
 						foreach(var sht in sheetLayout.srcWorksheets)
 						{
-							sheetLayout.dataSet = new DataSet(sheetLayout.wsLayout);
+							sheetLayout.dataSet = new DataSet(sheetLayout);
 							ProcessCells(sheetLayout, sht.WorksheetPart);
 							sheetLayout.dataSet.ProcessRows();
 						}
@@ -347,23 +347,23 @@ namespace Read_XLSX
 		private void ProcessCells(SheetLayout sLayout, WorksheetPart wsp)
 		{
 			Dictionary<int, Field> cols = new Dictionary<int, Field>();
-			sLayout.wsLayout.fieldColMap.colmaps.ForEach(cm => cols.Add(cm.column, cm.field));
+			sLayout.matchData.fldColMap.colmaps.ForEach(cm => cols.Add(cm.column, cm.field));
 
 			IEnumerable<CellRowCol> tcs = Enumerable.Empty<CellRowCol>();
 
-			switch (sLayout.wsLayout.fieldColMap.colLayout.colLayoutType)
+			switch (sLayout.matchData.fldColMap.colLayout.colLayoutType)
 			{
 				case ColLayoutType.Row_Col:
 					tcs = wsp.Worksheet.Descendants<Cell>()
 												.Where(c => c.InnerText.Length > 0)
 												.Select(t => new CellRowCol { cell = t, row = GetRowNum(t.CellReference.InnerText), col = GetColumn(t.CellReference.InnerText) })
-												.Where(k => k.row >= sLayout.wsLayout.fieldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
+												.Where(k => k.row >= sLayout.matchData.fldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
 					break;
 				case ColLayoutType.Col_Row:
 					tcs = wsp.Worksheet.Descendants<Cell>()
 												.Where(c => c.InnerText.Length > 0)
 												.Select(t => new CellRowCol { cell = t, col = GetRowNum(t.CellReference.InnerText), row = GetColumn(t.CellReference.InnerText) })
-												.Where(k => k.row >= sLayout.wsLayout.fieldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
+												.Where(k => k.row >= sLayout.matchData.fldColMap.colLayout.FirstRow && cols.ContainsKey(k.col));
 					break;
 			}
 
