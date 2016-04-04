@@ -892,7 +892,7 @@ namespace Read_XLSX
 							"Reason for Missed Services (Enter Code)",
 						}
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "MissedServiceDate", DataFormat = DataFormatType.String,
+					new Field { fldType = FieldType.column, OutputOrder = 9, Name = "MissedServiceDate", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string>
 						{
 							"Date of Missed Service (XX/XX/XXXX)",
@@ -934,7 +934,8 @@ namespace Read_XLSX
 							"Reporting Month",
 						}
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 14, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 14, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 15, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				},
 			};
 
@@ -1083,7 +1084,8 @@ namespace Read_XLSX
 							"Reporting Month:",
 						}
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 17, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 17, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 18, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				},
 			};
 
@@ -1268,7 +1270,8 @@ namespace Read_XLSX
 							"Reporting Month:",
 						}
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 18, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
+					new Field { fldType = FieldType.fileName, OutputOrder = 18, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 19, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				},
 			};
 
@@ -1391,11 +1394,11 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.cell, OutputOrder = 17, Name = "MC_PlanName", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string> { "SMMC-LTC PROGRAM" }
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "Yr", DataFormat = DataFormatType.String,
-						titles = new List<string> { "2014", "2015", "2016" }
-					},
-					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "Month", DataFormat = DataFormatType.DateMixed,
+					new Field { fldType = FieldType.cell, OutputOrder = 18, Name = "Month", DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "Reporting Month:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 19, Name = "Yr", DataFormat = DataFormatType.String,
+						titles = new List<string> { "2014", "2015", "2016" }
 					},
 					new Field { fldType = FieldType.fileName, OutputOrder = 20, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
 					new Field { fldType = FieldType.filePath, OutputOrder = 21, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true }
@@ -1443,11 +1446,11 @@ namespace Read_XLSX
 							"Managed Care Plan Name:",
 						}
 					},
-					new Field { fldType = FieldType.cell, OutputOrder = 2, Name = "Yr", isRequired = true, DataFormat = DataFormatType.String,
-						titles = new List<string> { "Calendar Year:" }
-					},
-					new Field { fldType = FieldType.cell, OutputOrder = 3, Name = "Month", isRequired = true, DataFormat = DataFormatType.DateMixed,
+					new Field { fldType = FieldType.cell, OutputOrder = 2, Name = "Month", isRequired = true, DataFormat = DataFormatType.DateMixed,
 						titles = new List<string> { "Reporting Month:" }
+					},
+					new Field { fldType = FieldType.cell, OutputOrder = 3, Name = "Yr", isRequired = true, DataFormat = DataFormatType.String,
+						titles = new List<string> { "Calendar Year:" }
 					},
 					new Field { fldType = FieldType.fileName, OutputOrder = 4, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
 					new Field { fldType = FieldType.filePath, OutputOrder = 5, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
@@ -2290,7 +2293,8 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Region", DataFormat = DataFormatType.String, rowType = RowType.GroupData,
 						titles = new List<string> { "REGION" }
 					},
-					new Field { fldType = FieldType.fileName, OutputOrder = 17, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.fileName, OutputOrder = 17, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
+					new Field { fldType = FieldType.filePath, OutputOrder = 18, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
 				}
 			};
 

@@ -25,15 +25,13 @@ namespace Read_XLSX
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_co";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_cor";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_cga";
-
-						string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_erfr\";
-
-			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_ntf";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_erfr\";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_me";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_mcms";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_ntf";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_pdo";
-			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_roster\";
 
-			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_all";
+						string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_all";
 
 			var startDT = DateTime.Now;
 			Log.SetDir(folder, startDT);
