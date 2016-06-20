@@ -31,7 +31,17 @@ namespace Read_XLSX
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_ntf";
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_pdo";
 
-						string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_all";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_all";
+
+						string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016";
+
+			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Case Management File Audit Report";
+			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Enrollee Complaints, Grievances, and Appeals Report";
+			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Enrollee Roster and Facility Residence Report";
+			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Marketing Agent Status report";
+			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Marketing Education Events Report";
+			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Missed Services Report";
+			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Participant Direction Option (PDO) Roster Report";
 
 			var startDT = DateTime.Now;
 			Log.SetDir(folder, startDT);

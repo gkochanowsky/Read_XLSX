@@ -87,8 +87,12 @@ namespace Read_XLSX
 						case FieldType.cell:
 						case FieldType.fileName:
 						case FieldType.filePath:
-							var df = this.Sheet.sLayout.matchData.fldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == d.OutputOrder);
-							val = (df != null ? df.Value ?? "" : "");
+							var fcm = this.Sheet.sLayout.matchData.fldCellMap;
+							if (fcm != null)
+							{
+								var df = this.Sheet.sLayout.matchData.fldCellMap.fldmaps.FirstOrDefault(fm => fm.field.OutputOrder == d.OutputOrder);
+								val = (df != null ? df.Value ?? "" : "");
+							}
 							break;
 					}
 
@@ -293,18 +297,22 @@ namespace Read_XLSX
 			_dsts = dsts;
 		}
 
+		public SpreadSheetLayout lastSSL { get; set; }
+
 		public int ProcessFile(FileInfo file)
 		{
 			try
 			{
 				using (SpreadsheetDocument ss = SpreadsheetDocument.Open(file.FullName, false))
 				{
-					var ssLayout = _dsts.DetermineLayout(ss, file);
+					var ssLayout = _dsts.DetermineLayout(ss, file, lastSSL);
 
 					if (ssLayout == null)
 					{
 						return 0;
 					}
+
+					lastSSL = ssLayout;
 
 					WorkbookPart wbp = ss.WorkbookPart;
 					stringTable = wbp.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();

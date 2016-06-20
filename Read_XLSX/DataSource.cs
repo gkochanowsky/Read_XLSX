@@ -94,7 +94,7 @@ namespace Read_XLSX
 		/// - when true then worksheet names must match DataSource type in order to be a match.
 		/// - when false then if any worksheets match data source layout then is a match
 		/// </remarks>
-		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd, FileInfo file)
+		public SpreadSheetLayout DetermineLayout(SpreadsheetDocument ssd, FileInfo file, SpreadSheetLayout lastSSL)
 		{
 			Clear();
 
@@ -151,6 +151,13 @@ namespace Read_XLSX
 				procTypes.AddRange(types.Where(p => p.procType == ProcessType.MatchByClosestWorkSheetLayout).ToList());
 
 			if (procTypes.Count() == 0) return null;
+
+			if (lastSSL != null)
+			// There was a last spread sheet layout, try that first.
+			{
+				var sortProcTypes = procTypes.Select(p => new { procType = p, ordIdx = (p == lastSSL ? 1 : 2) }).OrderBy(n => n.ordIdx);
+				procTypes = sortProcTypes.Select(s => s.procType).ToList();
+			}
 
 			foreach (var dst in procTypes)
 			// Iterate through types
@@ -305,6 +312,8 @@ namespace Read_XLSX
 					colMD = MatchColLayouts(md, tcs, sheetLayout, stringTable, formats, file);
 					md.fldColMap = colMD.fldColMap;
 					md.isPass = md.fldColMap != null;
+					cellMD = FileFields(md, sheetLayout, file);
+					md.fldCellMap = cellMD.fldCellMap;
 					break;
 			}
 
@@ -406,21 +415,22 @@ namespace Read_XLSX
 				}
 
 				// match by neighbor
-				// - Locate flds located by related field
+				// - Locate flds located by related adjacent field
 				var flds_byRelated = sheetLayout.wsLayout.fields.Where(f => f.locType == LocateType.byRelated);
 
-				// - Locate column map for related field parent
-				var related_pairs = flds_byRelated.Select(fr => new { fr = fr, cm = fcvm.colmaps.FirstOrDefault(rcm => rcm.field != null && rcm.field.OutputOrder == fr.RelatedCol) });
-
-				// - Locate column map for related field
-				var rf_cm = related_pairs.Where(rp => rp.cm != null).ToList().Select(rp => new { rp = rp, rc = fcvm.colmaps.FirstOrDefault(fcm => fcm.col_order == rp.cm.col_order + 1) });
-
-				// - Update the field for located column map
-				rf_cm.ToList().ForEach(rfcm =>
+				if (flds_byRelated.Count() > 0 && fcvm.colmaps.Where(cm => cm.field != null).Count() > 0)
+				// There are related fields in the wsLayout and maps to check by.
 				{
-					rfcm.rc.field = rfcm.rp.fr;
-					rfcm.rc.field_order = rfcm.rc.field.OutputOrder;
-				});
+					// Look for related fields where there is a map for the related field but no match for the column adjacent to the related field.
+					var related_flds = from fbr in flds_byRelated
+									   from m in fcvm.colmaps.Where(fcv => fcv.field != null)
+									   from um in fcvm.colmaps.Where(fcv => fcv.field == null)
+									   where fbr.RelatedOutputOrder == m.field.OutputOrder && m.col_order + 1 == um.col_order
+									   select new { related_fld = fbr, cm = m, um = um };
+
+					// Update the field map of the unmapped adjacent related field.
+					related_flds.ToList().ForEach(rf => rf.um.field = rf.related_fld);
+				}
 
 				fcvm.notNullTitleCnt = fcvm.colmaps.Where(cm => !string.IsNullOrWhiteSpace(cm.title)).Count();
 				fcvm.noMatchCnt = fcvm.colmaps.Where(cm => cm.field == null).Count();
@@ -436,6 +446,48 @@ namespace Read_XLSX
 			md.fldColMap = colLayout_v;
 
 			md.matchCnt += md.fldColMap != null ? 1 : 0;
+
+			return md;
+		}
+
+		public MatchData FileFields(MatchData md, SheetLayout sheetLayout, FileInfo file)
+		{
+			// Obtain titles for all field cell layouts
+			md.fldCellVersMaps = new List<FieldCellVersionMap>();
+
+			if (sheetLayout.wsLayout.cellLayouts == null)
+			{
+				sheetLayout.wsLayout.cellLayouts = new List<CellLayoutVersion>();
+				sheetLayout.wsLayout.cellLayouts.Add(new CellLayoutVersion { Version = 1 });
+			}
+
+			foreach(var fldLayout in sheetLayout.wsLayout.cellLayouts)
+			{
+				var fldLayoutVals = new List<FieldCellMap>();
+
+				md.fldCellVersMaps.Add(new FieldCellVersionMap { fldmaps = fldLayoutVals, fldLayout = fldLayout });
+
+				foreach (var flvv in md.fldCellVersMaps)
+				{
+					flvv.fldmaps = new List<FieldCellMap>();
+
+					md.fldCellMap = flvv;
+
+					// Add a filename layout if the field exists.
+					var fileName = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.fileName);
+					if (fileName != null)
+					{
+						flvv.fldmaps.Add(new FieldCellMap { Title = FieldType.fileName.ToString(), field = fileName, Value = file.Name });
+					}
+
+					// Add a filePath layout if the field exists.
+					var filePath = sheetLayout.wsLayout.fields.FirstOrDefault(fld => fld.fldType == FieldType.filePath);
+					if (filePath != null)
+					{
+						flvv.fldmaps.Add(new FieldCellMap { Title = FieldType.filePath.ToString(), field = filePath, Value = file.FullName });
+					}
+				}
+			}
 
 			return md;
 		}
@@ -524,6 +576,15 @@ namespace Read_XLSX
 									.OrderByDescending(fl => fl.fldmaps.Count())
 									.OrderBy(fl => fl.noValCnt)
 									.FirstOrDefault();
+
+			var hasRequiredCellsFlds = sheetLayout.wsLayout.fields.Where(f => f.isRequired && f.fldType == FieldType.cell).Count() > 0;
+
+			if (fldLayout_v == null && !hasRequiredCellsFlds)
+			// No cell layout match but no required cell fields
+			{
+				// Create a layout for file fields if they are there.
+				fldLayout_v = FileFields(md, sheetLayout, file).fldCellMap;
+			}
 
 			md.fldCellMap = fldLayout_v;
 
@@ -868,7 +929,7 @@ namespace Read_XLSX
 
 		public int OutputOrder { get; set; }
 
-		public int RelatedCol { get; set; }
+		public int RelatedOutputOrder { get; set; }
 
 		public bool isRequired { get; set; }
 
