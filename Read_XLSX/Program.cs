@@ -33,7 +33,7 @@ namespace Read_XLSX
 
 			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\test_all";
 
-						string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016";
+			//			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016";
 
 			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Case Management File Audit Report";
 			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Enrollee Complaints, Grievances, and Appeals Report";
@@ -43,9 +43,11 @@ namespace Read_XLSX
 			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Missed Services Report";
 			//string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\LTC Report April 2015 to June 2016\Participant Direction Option (PDO) Roster Report";
 
+			string folder = @"D:\local\CPDC\Projects\Read_XLSX\FILES TO IMPORT\20160201_Jose\Plan Data";
+
 			var startDT = DateTime.Now;
 			Log.SetDir(folder, startDT);
-
+		
 			Log.New.Msg($"Started {startDT.ToString()}");
 
 			var dd = new DataDump(folder);

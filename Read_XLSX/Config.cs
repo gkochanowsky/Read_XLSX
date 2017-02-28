@@ -277,10 +277,7 @@ namespace Read_XLSX
 					},
 					new Field { fldType = FieldType.fileName, OutputOrder = 23, Name = "FileName", DataFormat = DataFormatType.String, isRequired = true },
 					new Field { fldType = FieldType.filePath, OutputOrder = 24, Name = "FilePath", DataFormat = DataFormatType.String, isRequired = true },
-
-					new Field { fldType = FieldType.column, OutputOrder = 25, Name = "DispositionNoticeDate", DataFormat = DataFormatType.Date,
-						titles = new List<string> { "Date Disposition Notice Sent" }
-					},              },
+				},
 			};
 
 			var wsLayout_cga_comp = new WorkSheetLayout
@@ -2621,9 +2618,9 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "Contact_Phone", DataFormat = DataFormatType.String,
 						locType = LocateType.byRelated, RelatedOutputOrder = 14
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 15, Name = "Contact_Phone", DataFormat = DataFormatType.String,
-						titles = new List<string> { "PLAN'S LEAD CONTACT PHONE NUMBER" }
-					},
+					//new Field { fldType = FieldType.column, OutputOrder = 15, Name = "Contact_Phone", DataFormat = DataFormatType.String,
+					//	titles = new List<string> { "PLAN'S LEAD CONTACT PHONE NUMBER" }
+					//},
 					new Field { fldType = FieldType.column, OutputOrder = 16, Name = "Notice_Submitted", DataFormat = DataFormatType.String,
 						titles = new List<string> { "INVITATION NOTICE SUBMITTED: Yes/No" }
 					},
@@ -4788,7 +4785,7 @@ namespace Read_XLSX
 					new Field { fldType = FieldType.column, OutputOrder = 28, Name = "PlanHasSupportsDocumented", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string> { "Plan of care contains documentation of services and supports regardless of the funding source" }
 					},
-					new Field { fldType = FieldType.column, OutputOrder = 29, Name = "PlanDocumentsServicesTypeScopeAmountDurationFrequency", DataFormat = DataFormatType.String, isRequired = true,
+					new Field { fldType = FieldType.column, OutputOrder = 29, Name = "PlanDocServTypeScopeAmountDurationFreq", DataFormat = DataFormatType.String, isRequired = true,
 						titles = new List<string> { "Does plan of care document service type, scope, amount, duration and frequency of services" }
 					},
 					new Field { fldType = FieldType.column, OutputOrder = 30, Name = "ConsistentServiceAuthorizations", DataFormat = DataFormatType.String, isRequired = true,
